@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { useSocket } from './SocketContext';
 import { useSpotify } from './SpotifyContext';
 import { saveSession, clearSession } from '../lib/sessionStorage';
-import type { RoomState, PlayerInfo, GamePhase } from 'shared/src/types';
+import type { RoomState, PlayerInfo, GamePhase, PairResult } from 'shared/src/types';
 
 interface GameContextValue {
   room: RoomState | null;
@@ -10,10 +10,13 @@ interface GameContextValue {
   isHost: boolean;
   error: string | null;
   phaseData: any;
+  pairResults: PairResult | null;
   createRoom: (playerName: string) => void;
   joinRoom: (code: string, playerName: string) => void;
   leaveRoom: () => void;
   startGame: () => void;
+  nextRound: () => void;
+  endGame: () => void;
   clearError: () => void;
 }
 
@@ -23,10 +26,13 @@ const GameContext = createContext<GameContextValue>({
   isHost: false,
   error: null,
   phaseData: null,
+  pairResults: null,
   createRoom: () => {},
   joinRoom: () => {},
   leaveRoom: () => {},
   startGame: () => {},
+  nextRound: () => {},
+  endGame: () => {},
   clearError: () => {},
 });
 
@@ -37,6 +43,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [phaseData, setPhaseData] = useState<any>(null);
+  const [pairResults, setPairResults] = useState<PairResult | null>(null);
 
   const isHost = room?.hostId === playerId;
 
@@ -175,6 +182,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       pause().catch(err => console.error('Failed to stop:', err));
     });
 
+    socket.on('game:pairResults', (results: PairResult) => {
+      console.log('Received pair results:', results);
+      setPairResults(results);
+    });
+
     return () => {
       socket.off('room:created');
       socket.off('room:joined');
@@ -189,6 +201,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socket.off('game:ended');
       socket.off('game:play');
       socket.off('game:stop');
+      socket.off('game:pairResults');
     };
   }, [socket, play, pause, syncPlayback]);
 
@@ -213,6 +226,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     socket?.emit('game:start');
   }, [socket]);
 
+  const nextRound = useCallback(() => {
+    socket?.emit('game:nextRound');
+    setPairResults(null); // Clear previous results
+  }, [socket]);
+
+  const endGame = useCallback(() => {
+    socket?.emit('game:end');
+    setPairResults(null); // Clear results
+  }, [socket]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -225,10 +248,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
         isHost,
         error,
         phaseData,
+        pairResults,
         createRoom,
         joinRoom,
         leaveRoom,
         startGame,
+        nextRound,
+        endGame,
         clearError,
       }}
     >

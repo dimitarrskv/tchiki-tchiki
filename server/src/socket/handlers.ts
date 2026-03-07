@@ -157,6 +157,11 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
       // Set the mode to Music Pairs (only mode available)
       room.currentMode = GameMode.MUSIC_PAIRS;
 
+      // Reset scores if starting from lobby (new game)
+      if (room.phase === GamePhase.LOBBY) {
+        room.scores.clear();
+      }
+
       // Clean up any previous game
       const prevGame = activeGames.get(room.code);
       if (prevGame) {

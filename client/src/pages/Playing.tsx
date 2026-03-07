@@ -6,7 +6,7 @@ import { Header } from '../components/layout/Header';
 import { GamePhase } from 'shared/src/types';
 
 export function Playing() {
-  const { room, playerId, phaseData } = useGame();
+  const { room, playerId, phaseData, pairResults, isHost, nextRound, endGame } = useGame();
   const { socket } = useSocket();
   const [countdown, setCountdown] = useState<number>(3);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -171,12 +171,135 @@ export function Playing() {
         )}
 
         {(room.phase === GamePhase.REVEAL || room.phase === GamePhase.RESULTS) && (
-          <div>
-            <div className="text-4xl font-bold mb-4">Results</div>
-            {/* Results UI will be built in Milestone 3 */}
-            <div className="text-text-muted text-sm">
-              Results UI coming in Milestone 3
+          <div className="w-full max-w-md">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="text-4xl font-bold mb-2 text-primary neon-text">
+                {room.phase === GamePhase.REVEAL ? '🎭 Reveal' : '📊 Results'}
+              </div>
+              <p className="text-text-muted font-mono text-sm">
+                {room.phase === GamePhase.REVEAL ? 'Here are the pairs...' : `Round ${room.roundNumber} Complete`}
+              </p>
             </div>
+
+            {/* Pairs Display */}
+            {pairResults && (
+              <div className="space-y-3 mb-6">
+                <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
+                  &gt; Pairs:
+                </div>
+                {pairResults.pairs.map((pair, index) => {
+                  const [player1Id, player2Id] = pair;
+                  const player1 = room.players.find(p => p.id === player1Id);
+                  const player2 = room.players.find(p => p.id === player2Id);
+
+                  // Check if this pair matched correctly
+                  const isCorrect = pairResults.matchedCorrectly.some(
+                    match => (match[0] === player1Id && match[1] === player2Id) ||
+                             (match[1] === player1Id && match[0] === player2Id)
+                  );
+
+                  const isSolo = player1Id === player2Id;
+
+                  return (
+                    <div
+                      key={index}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        isCorrect
+                          ? 'bg-success/10 border-success shadow-[0_0_20px_rgba(0,255,128,0.3)]'
+                          : 'bg-bg-card border-primary/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="font-mono text-sm uppercase tracking-wide">
+                            {player1?.name || 'Unknown'}
+                          </span>
+                          {!isSolo && (
+                            <>
+                              <span className="text-primary">↔</span>
+                              <span className="font-mono text-sm uppercase tracking-wide">
+                                {player2?.name || 'Unknown'}
+                              </span>
+                            </>
+                          )}
+                          {isSolo && (
+                            <span className="text-text-muted text-xs">(solo)</span>
+                          )}
+                        </div>
+                        {isCorrect && (
+                          <span className="text-success text-lg">✓</span>
+                        )}
+                        {!isCorrect && !isSolo && (
+                          <span className="text-text-muted text-lg">✗</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Scores */}
+            <div className="mb-6">
+              <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
+                &gt; Scores:
+              </div>
+              <div className="bg-bg-card border-2 border-primary/30 rounded-lg p-4">
+                <div className="space-y-2">
+                  {room.players
+                    .sort((a, b) => (room.scores[b.id] || 0) - (room.scores[a.id] || 0))
+                    .map((player, index) => {
+                      const score = room.scores[player.id] || 0;
+                      const isCurrentPlayer = player.id === playerId;
+                      return (
+                        <div
+                          key={player.id}
+                          className={`flex items-center justify-between font-mono text-sm ${
+                            isCurrentPlayer ? 'text-primary font-bold' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-text-muted w-4">{index + 1}.</span>
+                            <span className="uppercase tracking-wide">
+                              {player.name}
+                              {isCurrentPlayer && ' (you)'}
+                            </span>
+                          </div>
+                          <span className={score > 0 ? 'text-success' : ''}>
+                            {score} pts
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+
+            {/* Host Controls */}
+            {room.phase === GamePhase.RESULTS && isHost && (
+              <div className="space-y-2">
+                <button
+                  onClick={nextRound}
+                  className="w-full bg-primary text-bg-primary font-bold py-3 px-4 rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] font-mono uppercase tracking-wide"
+                >
+                  ▶ Next Round
+                </button>
+                <button
+                  onClick={endGame}
+                  className="w-full bg-bg-card border-2 border-primary/30 text-text-muted font-mono py-3 px-4 rounded-lg hover:border-primary hover:text-primary transition-all uppercase tracking-wide text-sm"
+                >
+                  End Game
+                </button>
+              </div>
+            )}
+
+            {/* Non-host message */}
+            {room.phase === GamePhase.RESULTS && !isHost && (
+              <div className="text-center text-text-muted text-sm font-mono">
+                Waiting for host to start next round...
+              </div>
+            )}
           </div>
         )}
       </div>
