@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { useSocket } from '../context/SocketContext';
 import { MobileShell } from '../components/layout/MobileShell';
@@ -12,6 +12,7 @@ export function Playing() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [phaseDuration, setPhaseDuration] = useState<number>(0);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
+  const phaseStartTimeRef = useRef<number | null>(null);
 
   // Listen for countdown events
   useEffect(() => {
@@ -27,16 +28,29 @@ export function Playing() {
     };
   }, [socket]);
 
+  // Store phase start time when entering PLAYING phase
+  useEffect(() => {
+    if (!room) return;
+
+    if (room.phase === GamePhase.PLAYING && phaseStartTimeRef.current === null) {
+      // Only set start time when first entering PLAYING phase
+      phaseStartTimeRef.current = Date.now();
+      const duration = phaseData?.durationMs || 0;
+      setPhaseDuration(duration);
+    } else if (room.phase !== GamePhase.PLAYING) {
+      // Reset start time when leaving PLAYING phase
+      phaseStartTimeRef.current = null;
+    }
+  }, [room?.phase, phaseData]);
+
   // Handle timer for PLAYING phase
   useEffect(() => {
     if (!room) return;
 
-    if (room.phase === GamePhase.PLAYING) {
-      const duration = phaseData?.durationMs || 0;
-      setPhaseDuration(duration);
-      setTimeRemaining(duration);
+    if (room.phase === GamePhase.PLAYING && phaseStartTimeRef.current !== null) {
+      const startTime = phaseStartTimeRef.current;
+      const duration = phaseDuration;
 
-      const startTime = Date.now();
       const interval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, duration - elapsed);
@@ -49,7 +63,7 @@ export function Playing() {
 
       return () => clearInterval(interval);
     }
-  }, [room?.phase, phaseData]);
+  }, [room?.phase, phaseDuration]);
 
   // Reset selected partner when entering playing phase
   useEffect(() => {
