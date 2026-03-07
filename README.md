@@ -1,8 +1,8 @@
-# 🎵 Spotifight
+# 🎵 Tchiki-Tchiki
 
 > A real-time multiplayer music game powered by Spotify
 
-**Spotifight** is a social music game where players listen to music together and compete in rhythm-based challenges. Connect your Spotify Premium account, gather your friends, and let the music battle begin!
+**Tchiki-Tchiki** is a social music game where players listen to music together and compete in rhythm-based challenges. Connect your Spotify Premium account, gather your friends, and let the music battle begin!
 
 ## ✨ Features
 
@@ -40,8 +40,8 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/dimitarrskv/spotifight.git
-   cd spotifight
+   git clone https://github.com/dimitarrskv/tchiki-tchiki.git
+   cd tchiki-tchiki
    ```
 
 2. **Install dependencies**
@@ -113,7 +113,7 @@
 ## 📁 Project Structure
 
 ```
-spotifight/
+tchiki-tchiki/
 ├── client/              # React frontend
 │   ├── src/
 │   │   ├── components/  # Reusable UI components
@@ -146,7 +146,7 @@ Players are secretly paired up and hear the same song. The challenge? Figure out
 
 ## 🌐 Deployment
 
-Spotifight can be deployed for free using Vercel (frontend) and Fly.io (backend).
+Tchiki-Tchiki can be deployed for free using Vercel (frontend) and Fly.io (backend).
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
 
@@ -202,7 +202,7 @@ npm run typecheck
 
 Contributions are welcome! Here are some ways you can help:
 
-- 🐛 Report bugs by opening an [issue](https://github.com/dimitarrskv/spotifight/issues)
+- 🐛 Report bugs by opening an [issue](https://github.com/dimitarrskv/tchiki-tchiki/issues)
 - 💡 Suggest new game modes or features
 - 🎨 Improve UI/UX design
 - 📝 Improve documentation
@@ -274,4 +274,4 @@ Have questions or feedback? Open an issue or reach out!
 
 **Made with 🎵 by music lovers, for music lovers**
 
-[⭐ Star this repo](https://github.com/dimitarrskv/spotifight) if you enjoy Spotifight!
+[⭐ Star this repo](https://github.com/dimitarrskv/tchiki-tchiki) if you enjoy Tchiki-Tchiki!

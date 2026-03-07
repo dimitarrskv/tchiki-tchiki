@@ -30,7 +30,7 @@ const roomManager = new RoomManager();
 registerSocketHandlers(io, roomManager);
 
 httpServer.listen(config.port, '0.0.0.0', () => {
-  console.log(`🎵 Spotifight server running on port ${config.port}`);
+  console.log(`🎵 Tchiki-Tchiki server running on port ${config.port}`);
 });
 
 // Graceful shutdown

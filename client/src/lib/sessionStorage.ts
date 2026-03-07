@@ -3,7 +3,7 @@
  * Stores player session info in localStorage to enable auto-rejoin after disconnect
  */
 
-const SESSION_KEY = 'spotifight_session';
+const SESSION_KEY = 'tchiki_tchiki_session';
 const SESSION_TIMEOUT_MS = 3600000; // 1 hour
 
 export interface SessionData {

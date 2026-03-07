@@ -1,7 +1,7 @@
 # fly.toml app configuration file
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 
-app = "app-restless-snowflake-9345"
+app = "tchiki-tchiki"
 primary_region = "iad" # Change to your preferred region (iad=US East)
 
 [build]

@@ -1,6 +1,6 @@
-# Spotifight Deployment Guide
+# Tchiki-Tchiki Deployment Guide
 
-This guide will help you deploy Spotifight using **Vercel** (frontend) and **Fly.io** (backend).
+This guide will help you deploy Tchiki-Tchiki using **Vercel** (frontend) and **Fly.io** (backend).
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ This will open your browser to authenticate.
 flyctl launch
 
 # When prompted:
-# - App name: Choose a unique name (e.g., "spotifight-yourname")
+# - App name: Choose a unique name (e.g., "tchiki-tchiki-yourname")
 # - Region: Choose closest to you (e.g., "iad" for US East)
 # - Would you like to set up a Postgresql database? → NO
 # - Would you like to set up an Upstash Redis database? → NO

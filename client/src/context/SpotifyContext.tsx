@@ -130,7 +130,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       if (playerRef.current) return;
 
       const player = new window.Spotify.Player({
-        name: 'Spotifight',
+        name: 'Tchiki-Tchiki',
         getOAuthToken: (cb) => {
           const current = getStoredTokens();
           if (current) {
