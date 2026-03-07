@@ -34,13 +34,22 @@ export function Playing() {
     if (!room) return;
 
     if (room.phase === GamePhase.PLAYING && phaseStartTimeRef.current === null) {
-      // Only set start time when first entering PLAYING phase
-      phaseStartTimeRef.current = Date.now();
+      // Use server timestamp if available, otherwise fall back to client time
+      const serverTimestamp = phaseData?.serverTimestamp;
+      if (serverTimestamp) {
+        phaseStartTimeRef.current = serverTimestamp;
+        console.log('⏱️  Using server timestamp for timer sync:', serverTimestamp);
+      } else {
+        phaseStartTimeRef.current = Date.now();
+        console.warn('⚠️  No server timestamp, using client time');
+      }
       const duration = phaseData?.durationMs || 0;
       setPhaseDuration(duration);
+      console.log('⏱️  Timer initialized - Duration:', duration, 'ms');
     } else if (room.phase !== GamePhase.PLAYING) {
       // Reset start time when leaving PLAYING phase
       phaseStartTimeRef.current = null;
+      console.log('⏱️  Timer reset - left PLAYING phase');
     }
   }, [room?.phase, phaseData]);
 

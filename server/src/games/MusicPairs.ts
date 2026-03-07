@@ -93,10 +93,13 @@ export class MusicPairs extends BaseGame {
     console.log(`🎵 Setting phase to PLAYING`);
     this.setPhase(GamePhase.PLAYING);
 
-    // Send duration info so clients can show timer
+    // Send duration info and server timestamp so clients can sync timer
     this.emit('game:phaseChange', {
       phase: GamePhase.PLAYING,
-      data: { durationMs: this.config.listenDurationMs }
+      data: {
+        durationMs: this.config.listenDurationMs,
+        serverTimestamp: serverTimestamp  // Use same timestamp as play events
+      }
     });
 
     // After listen duration, stop music and resolve matches
@@ -140,7 +143,10 @@ export class MusicPairs extends BaseGame {
 
     const matchedCorrectly: [string, string][] = [];
 
-    // Check each pair to see if BOTH players correctly identified each other
+    // Track individual correct guesses and perfect matches
+    const correctGuesses = new Set<string>();
+
+    // Check each pair
     for (const [player1Id, player2Id] of this.state.pairs) {
       // Solo player case (odd number of players)
       if (player1Id === player2Id) {
@@ -156,20 +162,36 @@ export class MusicPairs extends BaseGame {
       const player2Claim = this.state.claims.get(player2Id);
       const player2Correct = player2Claim === player1Id;
 
-      // Both must be correct for the pair to match
+      // Track individual correct guesses
+      if (player1Correct) {
+        correctGuesses.add(player1Id);
+      }
+      if (player2Correct) {
+        correctGuesses.add(player2Id);
+      }
+
+      // Both correct = perfect match (shown with checkmark in UI)
       if (player1Correct && player2Correct) {
         matchedCorrectly.push([player1Id, player2Id]);
       }
     }
 
-    // Scoring: Each player in a correctly matched pair gets 2 points
+    // Scoring: 1 point for correct guess, +1 bonus if both matched
+    for (const playerId of correctGuesses) {
+      const current = this.room.scores.get(playerId) || 0;
+      this.room.scores.set(playerId, current + 1);
+    }
+
+    // Bonus point for perfect matches
     for (const [player1, player2] of matchedCorrectly) {
       const current1 = this.room.scores.get(player1) || 0;
-      this.room.scores.set(player1, current1 + 2);
+      this.room.scores.set(player1, current1 + 1);
 
       const current2 = this.room.scores.get(player2) || 0;
-      this.room.scores.set(player2, current2 + 2);
+      this.room.scores.set(player2, current2 + 1);
     }
+
+    console.log(`📊 Scoring: ${correctGuesses.size} correct guesses, ${matchedCorrectly.length} perfect matches`);
 
     // Reveal phase
     this.setPhase(GamePhase.REVEAL);
