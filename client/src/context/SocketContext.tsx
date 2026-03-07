@@ -8,18 +8,21 @@ interface SocketContextValue {
   socket: TypedSocket | null;
   isConnected: boolean;
   connectionState: ConnectionState;
+  isRejoining: boolean;
 }
 
 const SocketContext = createContext<SocketContextValue>({
   socket: null,
   isConnected: false,
   connectionState: 'disconnected',
+  isRejoining: false,
 });
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
+  const [isRejoining, setIsRejoining] = useState(false);
 
   useEffect(() => {
     const s = connectSocket();
@@ -33,6 +36,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       const session = getSession();
       if (session) {
         console.log('Found existing session, attempting to rejoin room:', session.roomCode);
+        setIsRejoining(true);
         s.emit('room:rejoin', {
           code: session.roomCode,
           playerId: session.playerId,
@@ -66,10 +70,25 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       console.error('Reconnection error:', err);
     }
 
+    // Handle rejoin completion
+    function onRoomRejoined() {
+      console.log('Rejoin successful');
+      setIsRejoining(false);
+    }
+
+    function onRoomError({ message }: { message: string }) {
+      if (message.includes('rejoin')) {
+        console.log('Rejoin failed:', message);
+        setIsRejoining(false);
+      }
+    }
+
     s.on('connect', onConnect);
     s.on('disconnect', onDisconnect);
     s.io.on('reconnect_attempt', onReconnecting);
     s.io.on('reconnect_error', onReconnectError);
+    s.on('room:rejoined', onRoomRejoined);
+    s.on('room:error', onRoomError);
 
     if (s.connected) {
       setIsConnected(true);
@@ -97,6 +116,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       s.off('disconnect', onDisconnect);
       s.io.off('reconnect_attempt', onReconnecting);
       s.io.off('reconnect_error', onReconnectError);
+      s.off('room:rejoined', onRoomRejoined);
+      s.off('room:error', onRoomError);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       disconnectSocket();
@@ -104,7 +125,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, [connectionState]);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, connectionState }}>
+    <SocketContext.Provider value={{ socket, isConnected, connectionState, isRejoining }}>
       {children}
     </SocketContext.Provider>
   );

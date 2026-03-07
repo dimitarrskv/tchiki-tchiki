@@ -1,14 +1,17 @@
 import { useGame } from './context/GameContext';
+import { useSocket } from './context/SocketContext';
 import { Home } from './pages/Home';
 import { Lobby } from './pages/Lobby';
 import { Playing } from './pages/Playing';
 import { SpotifyCallback } from './pages/SpotifyCallback';
 import { ConnectionStatus } from './components/ConnectionStatus';
+import { MobileShell } from './components/layout/MobileShell';
 import { useWakeLock } from './hooks/useWakeLock';
 import { GamePhase } from 'shared/src/types';
 
 export function App() {
   const { room } = useGame();
+  const { isRejoining } = useSocket();
 
   // Enable wake lock during active gameplay to prevent phone sleep
   const isPlaying = room?.phase && [
@@ -27,8 +30,24 @@ export function App() {
 
   let content;
 
+  // Show loading screen while attempting to rejoin
+  if (isRejoining) {
+    content = (
+      <MobileShell>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="mb-4">
+              <div className="connection-spinner mx-auto" style={{ width: 40, height: 40 }} />
+            </div>
+            <div className="text-primary font-mono text-lg mb-2">Rejoining room...</div>
+            <div className="text-text-muted text-sm font-mono">Restoring your session</div>
+          </div>
+        </div>
+      </MobileShell>
+    );
+  }
   // No room yet → show home/join screen
-  if (!room) {
+  else if (!room) {
     content = <Home />;
   } else {
     // Route based on game phase
