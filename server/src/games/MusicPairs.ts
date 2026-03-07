@@ -67,9 +67,11 @@ export class MusicPairs extends BaseGame {
     if (!this.state) return;
 
     const players = this.getConnectedPlayers();
+    console.log(`🎵 Starting playing phase with ${players.length} connected players`);
 
     // Send play events to all players with Spotify devices
     const authenticatedPlayers = players.filter(p => p.spotifyDeviceId);
+    console.log(`🎵 ${authenticatedPlayers.length} players have Spotify devices`);
 
     const serverTimestamp = Date.now(); // Capture timestamp for sync
 
@@ -81,10 +83,14 @@ export class MusicPairs extends BaseGame {
 
       if (pairIndex >= 0) {
         const trackUri = this.state.trackUris[pairIndex];
+        console.log(`🎵 Sending track to ${player.name} (${player.id}):`, trackUri);
         this.emitToPlayer(player.socketId, 'game:play', { trackUri, serverTimestamp });
+      } else {
+        console.warn(`⚠️  Player ${player.name} not found in any pair`);
       }
     }
 
+    console.log(`🎵 Setting phase to PLAYING`);
     this.setPhase(GamePhase.PLAYING);
 
     // Send duration info so clients can show timer

@@ -155,25 +155,40 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     // Music playback events
     socket.on('game:play', async ({ trackUri, serverTimestamp }: { trackUri: string; serverTimestamp: number }) => {
-      console.log('Received play command at', Date.now(), 'sent at', serverTimestamp);
+      console.log('🎵 Received play command:', {
+        trackUri,
+        serverTimestamp,
+        receivedAt: Date.now(),
+        delay: Date.now() - serverTimestamp
+      });
 
       try {
         // Start playback
+        console.log('🎵 Starting playback...');
         await play(trackUri);
+        console.log('🎵 Playback started successfully');
 
         // Wait for playback to actually start (give it 500ms)
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Calculate how much time has elapsed since server sent the command
         const elapsedMs = Date.now() - serverTimestamp;
+        console.log('🎵 Elapsed time since server sent command:', elapsedMs, 'ms');
 
         // Sync to correct position (accounting for network/processing delay)
         if (elapsedMs > 100) {  // Only sync if delay is significant
+          console.log('🎵 Syncing playback to position:', elapsedMs, 'ms');
           await syncPlayback(elapsedMs);
+          console.log('🎵 Playback synced');
         }
-      } catch (err) {
-        console.error('Failed to play track:', err);
-        setError('Failed to play music. Make sure Spotify is connected.');
+      } catch (err: any) {
+        console.error('❌ Failed to play track:', err);
+        console.error('❌ Error details:', {
+          message: err?.message,
+          stack: err?.stack,
+          name: err?.name
+        });
+        setError(`Failed to play music: ${err?.message || 'Unknown error'}. Make sure Spotify is connected.`);
       }
     });
 
