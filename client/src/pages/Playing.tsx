@@ -87,36 +87,135 @@ export function Playing() {
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
         {room.phase === GamePhase.COUNTDOWN && (
           <div className="w-full">
-            <div className="text-7xl font-bold text-primary mb-8 animate-pulse" style={{
-              textShadow: '0 0 30px rgba(0, 240, 255, 0.8)',
-              animation: 'pulse 0.5s ease-in-out'
-            }}>
-              {countdown}
+            {/* Animated Countdown Number */}
+            <div
+              key={countdown}
+              className="mb-8"
+              style={{
+                animation: 'countdownPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }}
+            >
+              <div
+                className={`text-9xl font-bold ${
+                  countdown === 3 ? 'text-primary' :
+                  countdown === 2 ? 'text-yellow-400' :
+                  'text-red-400'
+                }`}
+                style={{
+                  textShadow: `0 0 40px ${
+                    countdown === 3 ? 'rgba(0, 240, 255, 0.9)' :
+                    countdown === 2 ? 'rgba(255, 193, 7, 0.9)' :
+                    'rgba(255, 87, 87, 0.9)'
+                  }`,
+                  WebkitTextStroke: '2px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                {countdown}
+              </div>
             </div>
-            <div className="text-2xl font-bold mb-4 text-primary neon-text">
+
+            <div
+              className="text-3xl font-bold mb-4 text-primary"
+              style={{
+                animation: 'fadeInUp 0.5s ease-out',
+                textShadow: '0 0 20px rgba(0, 240, 255, 0.6)'
+              }}
+            >
               Get Ready!
             </div>
-            <p className="text-text-muted font-mono">
+
+            <p
+              className="text-text-muted font-mono mb-6"
+              style={{
+                animation: 'fadeInUp 0.6s ease-out'
+              }}
+            >
               &gt; Put your headphones on...
             </p>
-            <div className="mt-8 text-text-muted text-sm font-mono border border-primary/30 rounded-lg p-4 bg-bg-card">
-              <div className="text-primary mb-2">// OBJECTIVE</div>
+
+            <div
+              className="mt-8 text-text-muted text-sm font-mono border border-primary/30 rounded-lg p-4 bg-bg-card"
+              style={{
+                animation: 'fadeInUp 0.7s ease-out'
+              }}
+            >
+              <div className="text-primary mb-2 font-bold">// OBJECTIVE</div>
               <div>Find the person hearing the same song as you!</div>
             </div>
+
+            {/* Add keyframe animations via style tag */}
+            <style>{`
+              @keyframes countdownPop {
+                0% {
+                  transform: scale(0.3) rotate(-10deg);
+                  opacity: 0;
+                }
+                50% {
+                  transform: scale(1.15) rotate(5deg);
+                }
+                100% {
+                  transform: scale(1) rotate(0deg);
+                  opacity: 1;
+                }
+              }
+
+              @keyframes fadeInUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+            `}</style>
           </div>
         )}
 
         {room.phase === GamePhase.PLAYING && (
           <div className="w-full">
-            <div className="text-4xl font-bold mb-4 text-primary neon-text">
+            <div
+              className="text-4xl font-bold mb-4 text-primary neon-text"
+              style={{
+                animation: 'slideInFromTop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }}
+            >
               🎵 Find Your Match
             </div>
 
             <div className="mb-4">
-              <p className="text-text-muted mb-4 font-mono text-sm">
+              <p
+                className="text-text-muted mb-4 font-mono text-sm"
+                style={{
+                  animation: 'fadeIn 0.8s ease-out'
+                }}
+              >
                 Who is hearing the same song as you?
               </p>
             </div>
+
+            <style>{`
+              @keyframes slideInFromTop {
+                from {
+                  opacity: 0;
+                  transform: translateY(-30px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+
+              @keyframes fadeIn {
+                from {
+                  opacity: 0;
+                }
+                to {
+                  opacity: 1;
+                }
+              }
+            `}</style>
 
             {/* Circular Timer */}
             <div className="w-full max-w-md mx-auto mb-6 flex justify-center">
@@ -166,7 +265,12 @@ export function Playing() {
         {(room.phase === GamePhase.REVEAL || room.phase === GamePhase.RESULTS) && (
           <div className="w-full max-w-md">
             {/* Header */}
-            <div className="text-center mb-6">
+            <div
+              className="text-center mb-6"
+              style={{
+                animation: 'revealBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }}
+            >
               <div className="text-4xl font-bold mb-2 text-primary neon-text">
                 {room.phase === GamePhase.REVEAL ? '🎭 Reveal' : '📊 Results'}
               </div>
@@ -175,10 +279,42 @@ export function Playing() {
               </p>
             </div>
 
+            <style>{`
+              @keyframes revealBounce {
+                0% {
+                  opacity: 0;
+                  transform: scale(0.5) translateY(-50px);
+                }
+                60% {
+                  transform: scale(1.1) translateY(0);
+                }
+                100% {
+                  opacity: 1;
+                  transform: scale(1) translateY(0);
+                }
+              }
+
+              @keyframes slideInLeft {
+                from {
+                  opacity: 0;
+                  transform: translateX(-30px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateX(0);
+                }
+              }
+            `}</style>
+
             {/* Pairs Display */}
             {pairResults && (
               <div className="space-y-3 mb-6">
-                <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
+                <div
+                  className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide"
+                  style={{
+                    animation: 'fadeIn 0.5s ease-out'
+                  }}
+                >
                   &gt; Pairs:
                 </div>
                 {pairResults.pairs.map((pair, index) => {
@@ -202,6 +338,9 @@ export function Playing() {
                           ? 'bg-success/10 border-success shadow-[0_0_20px_rgba(0,255,128,0.3)]'
                           : 'bg-bg-card border-primary/30'
                       }`}
+                      style={{
+                        animation: `slideInLeft 0.5s ease-out ${index * 0.1}s both`
+                      }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-1">

@@ -36,9 +36,15 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
   };
 
   const colors = getColor();
+  const isLowTime = seconds <= 10 && seconds > 0;
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div
+      className="relative flex items-center justify-center"
+      style={{
+        animation: isLowTime ? 'timerPulse 0.5s ease-in-out infinite' : 'none'
+      }}
+    >
       <svg className="transform -rotate-90" width="180" height="180">
         {/* Background circle */}
         <circle
@@ -81,6 +87,18 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
           </div>
         </div>
       </div>
+
+      {/* Pulse animation for low time */}
+      <style>{`
+        @keyframes timerPulse {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+        }
+      `}</style>
     </div>
   );
 }
