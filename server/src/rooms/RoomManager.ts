@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Room } from './Room';
 import { Player } from './Player';
+import { PlayerRole } from 'shared/src/types';
 
 const GHOST_TIMEOUT_MS = 30000; // 30 seconds
 const ROOM_CLEANUP_INTERVAL_MS = 60000; // 1 minute
@@ -42,19 +43,20 @@ export class RoomManager {
     return room;
   }
 
-  joinRoom(code: string, socketId: string, playerName: string): { room: Room; player: Player } {
+  joinRoom(code: string, socketId: string, playerName: string, isGuest: boolean = false): { room: Room; player: Player } {
     const room = this.rooms.get(code.toUpperCase());
     if (!room) {
       throw new Error('Room not found');
     }
 
     const playerId = uuidv4();
-    const player = new Player(playerId, playerName, socketId, false);
+    const role = isGuest ? PlayerRole.GUEST : PlayerRole.HOST;
+    const player = new Player(playerId, playerName, socketId, false, role);
     room.addPlayer(player); // Throws if full or game in progress
 
     this.socketToRoom.set(socketId, code);
 
-    console.log(`${playerName} (${playerId}) joined room ${code}`);
+    console.log(`${playerName} (${playerId}) joined room ${code} as ${role}`);
     return { room, player };
   }
 

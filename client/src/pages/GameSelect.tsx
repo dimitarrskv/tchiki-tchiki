@@ -18,7 +18,7 @@ const MODES: ModeInfo[] = [
     name: 'Odd One Out',
     icon: '◬',
     description: "Everyone hears music except one faker who must pretend. Find the faker!",
-    playerHint: '4+ players recommended',
+    playerHint: 'Coming soon',
   },
   {
     mode: GameMode.MUSIC_PAIRS,
@@ -32,7 +32,7 @@ const MODES: ModeInfo[] = [
     name: 'Freeze',
     icon: '◉',
     description: "Dance to the music. When YOUR song stops, freeze! Don't get caught moving.",
-    playerHint: '4+ players recommended',
+    playerHint: 'Coming soon',
   },
 ];
 
@@ -59,43 +59,46 @@ export function GameSelect() {
         </div>
 
         <div className="space-y-3">
-          {MODES.map((mode) => (
-            <button
-              key={mode.mode}
-              onClick={() => isHost && selectMode(mode.mode)}
-              disabled={!isHost}
-              className={clsx(
-                'w-full text-left p-5 rounded-lg border-2 transition-all relative overflow-hidden',
-                isHost
-                  ? 'bg-bg-card border-primary/30 hover:border-primary hover:bg-bg-hover cursor-pointer hover:shadow-[0_0_20px_rgba(0,240,255,0.2)]'
-                  : 'bg-bg-card border-border/30 opacity-60 cursor-not-allowed'
-              )}
-            >
-              <div className="flex items-start gap-4 relative z-10">
-                <div className="text-4xl font-bold text-primary neon-text" style={{
-                  textShadow: '0 0 10px rgba(0, 240, 255, 0.8)'
-                }}>
-                  {mode.icon}
-                </div>
-                <div className="flex-1">
-                  <div className="font-bold text-lg uppercase tracking-wide text-primary">
-                    {mode.name}
+          {MODES.map((mode) => {
+            const isDisabled = mode.mode !== GameMode.MUSIC_PAIRS;
+            return (
+              <button
+                key={mode.mode}
+                onClick={() => isHost && !isDisabled && selectMode(mode.mode)}
+                disabled={!isHost || isDisabled}
+                className={clsx(
+                  'w-full text-left p-5 rounded-lg border-2 transition-all relative overflow-hidden',
+                  isHost && !isDisabled
+                    ? 'bg-bg-card border-primary/30 hover:border-primary hover:bg-bg-hover cursor-pointer hover:shadow-[0_0_20px_rgba(0,240,255,0.2)]'
+                    : 'bg-bg-card border-border/30 opacity-60 cursor-not-allowed'
+                )}
+              >
+                <div className="flex items-start gap-4 relative z-10">
+                  <div className="text-4xl font-bold text-primary neon-text" style={{
+                    textShadow: '0 0 10px rgba(0, 240, 255, 0.8)'
+                  }}>
+                    {mode.icon}
                   </div>
-                  <div className="text-sm text-text-muted mt-1 leading-relaxed">
-                    {mode.description}
-                  </div>
-                  <div className="text-xs text-secondary mt-2 uppercase tracking-wide">
-                    &gt; {mode.playerHint}
+                  <div className="flex-1">
+                    <div className="font-bold text-lg uppercase tracking-wide text-primary">
+                      {mode.name}
+                    </div>
+                    <div className="text-sm text-text-muted mt-1 leading-relaxed">
+                      {mode.description}
+                    </div>
+                    <div className="text-xs text-secondary mt-2 uppercase tracking-wide">
+                      &gt; {mode.playerHint}
+                    </div>
                   </div>
                 </div>
-              </div>
-              {isHost && (
-                <div className="absolute top-2 right-2 text-xs text-primary/50 font-mono">
-                  [SELECT]
-                </div>
-              )}
-            </button>
-          ))}
+                {isHost && !isDisabled && (
+                  <div className="absolute top-2 right-2 text-xs text-primary/50 font-mono">
+                    [SELECT]
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </MobileShell>

@@ -9,16 +9,22 @@ import { PlayerCard } from '../components/room/PlayerCard';
 
 export function Lobby() {
   const { room, playerId, isHost, startGame } = useGame();
-  const { isPlayerReady, deviceId, isPremium } = useSpotify();
+  const { isAuthenticated, isPlayerReady, deviceId, isPremium } = useSpotify();
   const { socket } = useSocket();
   const [copied, setCopied] = useState(false);
 
-  // Notify server when Spotify is ready
+  // Notify server when ready (with or without Spotify)
   useEffect(() => {
-    if (isPlayerReady && deviceId && socket) {
+    if (!socket) return;
+
+    if (isPlayerReady && deviceId) {
+      // Host with Spotify authentication
       socket.emit('player:ready', { spotifyDeviceId: deviceId });
+    } else if (!isAuthenticated) {
+      // Guest without Spotify - still mark as ready
+      socket.emit('player:ready', {});
     }
-  }, [isPlayerReady, deviceId, socket]);
+  }, [isAuthenticated, isPlayerReady, deviceId, socket]);
 
   if (!room) return null;
 
@@ -74,15 +80,19 @@ export function Lobby() {
         </button>
       </div>
 
-      {/* Spotify Status */}
-      {!isPlayerReady && (
+      {/* Status Display */}
+      {!isAuthenticated ? (
+        <div className="bg-primary/10 border border-primary text-primary text-sm text-center py-2 px-4 rounded-lg mb-4 font-mono uppercase tracking-wide relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent animate-pulse"></div>
+          <span className="relative z-10">&gt; GUEST MODE :: READY</span>
+        </div>
+      ) : !isPlayerReady ? (
         <div className="bg-warning/10 border border-warning text-warning text-sm text-center py-2 px-4 rounded-lg mb-4 font-mono uppercase tracking-wide">
           {isPremium === false
             ? '! Premium Required'
             : '&gt;&gt; Initializing Audio Stream...'}
         </div>
-      )}
-      {isPlayerReady && (
+      ) : (
         <div className="bg-success/10 border border-success text-success text-sm text-center py-2 px-4 rounded-lg mb-4 font-mono uppercase tracking-wide relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-success/20 to-transparent animate-pulse"></div>
           <span className="relative z-10">[OK] STREAM ACTIVE :: READY</span>

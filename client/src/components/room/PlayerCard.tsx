@@ -1,5 +1,6 @@
 import { clsx } from 'clsx';
 import type { PlayerInfo } from 'shared/src/types';
+import { PlayerRole } from 'shared/src/types';
 
 interface PlayerCardProps {
   player: PlayerInfo;
@@ -30,6 +31,7 @@ function getAvatar(name: string): { symbol: string; color: string } {
 
 export function PlayerCard({ player, isMe }: PlayerCardProps) {
   const avatar = getAvatar(player.name);
+  const isGuest = player.role === PlayerRole.GUEST;
 
   return (
     <div
@@ -61,13 +63,18 @@ export function PlayerCard({ player, isMe }: PlayerCardProps) {
               HOST
             </span>
           )}
+          {isGuest && (
+            <span className="text-xs bg-border/30 text-text-muted border border-border/50 px-2 py-0.5 rounded font-mono">
+              GUEST
+            </span>
+          )}
         </div>
         <div className="text-xs text-text-muted font-mono">
           {!player.isConnected
             ? '// Reconnecting...'
             : player.isReady
-            ? '&gt; Stream active'
-            : '&gt; Linking stream...'}
+            ? isGuest ? '&gt; Ready' : '&gt; Stream active'
+            : isGuest ? '&gt; Connecting...' : '&gt; Linking stream...'}
         </div>
       </div>
       <div

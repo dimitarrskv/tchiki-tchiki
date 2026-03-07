@@ -1,4 +1,4 @@
-import { PlayerInfo } from 'shared/src/types';
+import { PlayerInfo, PlayerRole } from 'shared/src/types';
 
 export class Player {
   id: string;
@@ -9,8 +9,9 @@ export class Player {
   isConnected: boolean;
   spotifyDeviceId: string | null;
   disconnectedAt: number | null;
+  role: PlayerRole;
 
-  constructor(id: string, name: string, socketId: string, isHost: boolean) {
+  constructor(id: string, name: string, socketId: string, isHost: boolean, role?: PlayerRole) {
     this.id = id;
     this.name = name;
     this.socketId = socketId;
@@ -19,6 +20,7 @@ export class Player {
     this.isConnected = true;
     this.spotifyDeviceId = null;
     this.disconnectedAt = null;
+    this.role = role ?? (isHost ? PlayerRole.HOST : PlayerRole.GUEST);
   }
 
   toInfo(): PlayerInfo {
@@ -28,6 +30,7 @@ export class Player {
       isHost: this.isHost,
       isReady: this.isReady,
       isConnected: this.isConnected,
+      role: this.role,
     };
   }
 

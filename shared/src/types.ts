@@ -21,6 +21,11 @@ export enum GameMode {
   FREEZE = 'freeze',
 }
 
+export enum PlayerRole {
+  HOST = 'host',    // Must authenticate with Spotify
+  GUEST = 'guest',  // No authentication needed
+}
+
 // ─── Data Structures ─────────────────────────────────────────
 
 export interface PlayerInfo {
@@ -29,6 +34,7 @@ export interface PlayerInfo {
   isHost: boolean;
   isReady: boolean;
   isConnected: boolean;
+  role: PlayerRole;
 }
 
 export interface RoomState {
@@ -89,11 +95,19 @@ export type CreateRoomPayload = z.infer<typeof CreateRoomPayload>;
 export const JoinRoomPayload = z.object({
   code: z.string().length(4),
   playerName: z.string().min(1).max(20),
+  isGuest: z.boolean().optional(),
 });
 export type JoinRoomPayload = z.infer<typeof JoinRoomPayload>;
 
+export const RejoinRoomPayload = z.object({
+  code: z.string().length(4),
+  playerId: z.string(),
+  playerName: z.string().min(1).max(20),
+});
+export type RejoinRoomPayload = z.infer<typeof RejoinRoomPayload>;
+
 export const PlayerReadyPayload = z.object({
-  spotifyDeviceId: z.string(),
+  spotifyDeviceId: z.string().optional(),
 });
 export type PlayerReadyPayload = z.infer<typeof PlayerReadyPayload>;
 
@@ -122,6 +136,7 @@ export type CatchPlayerPayload = z.infer<typeof CatchPlayerPayload>;
 export interface ClientToServerEvents {
   'room:create': (payload: CreateRoomPayload) => void;
   'room:join': (payload: JoinRoomPayload) => void;
+  'room:rejoin': (payload: RejoinRoomPayload) => void;
   'room:leave': () => void;
   'player:ready': (payload: PlayerReadyPayload) => void;
   'game:select': (payload: GameSelectPayload) => void;
@@ -135,13 +150,16 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   'room:created': (payload: { code: string; room: RoomState }) => void;
-  'room:joined': (payload: { room: RoomState }) => void;
+  'room:joined': (payload: { playerId: string; room: RoomState }) => void;
+  'room:rejoined': (payload: { playerId: string; room: RoomState }) => void;
   'room:playerJoined': (payload: { player: PlayerInfo }) => void;
   'room:playerLeft': (payload: { playerId: string }) => void;
+  'room:playerReconnected': (payload: { playerId: string }) => void;
   'room:error': (payload: { message: string }) => void;
   'room:updated': (payload: { room: RoomState }) => void;
   'game:modeSelected': (payload: { mode: GameMode }) => void;
   'game:starting': (payload: { countdown: number }) => void;
+  'game:countdown': (payload: { count: number }) => void;
   'game:play': (payload: { trackUri: string }) => void;
   'game:silence': () => void;
   'game:stop': () => void;

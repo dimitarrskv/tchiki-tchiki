@@ -190,7 +190,8 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   const play = useCallback(async (trackUri: string) => {
     const current = getStoredTokens();
     if (!current || !deviceId) {
-      console.error('Cannot play: no token or device');
+      // Silently skip playback for guests without authentication
+      console.log('Skipping playback: not authenticated');
       return;
     }
     await startPlayback(current.accessToken, deviceId, trackUri);
@@ -198,7 +199,10 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
 
   const pause = useCallback(async () => {
     const current = getStoredTokens();
-    if (!current || !deviceId) return;
+    if (!current || !deviceId) {
+      // Silently skip for guests
+      return;
+    }
     await pausePlayback(current.accessToken, deviceId);
   }, [deviceId]);
 

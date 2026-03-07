@@ -4,6 +4,7 @@ import {
   ServerToClientEvents,
   CreateRoomPayload,
   JoinRoomPayload,
+  RejoinRoomPayload,
   PlayerReadyPayload,
   GameSelectPayload,
   VotePayload,
@@ -15,6 +16,7 @@ import {
 import { RoomManager } from '../rooms/RoomManager';
 import { BaseGame } from '../games/BaseGame';
 import { OddOneOut } from '../games/OddOneOut';
+import { MusicPairs } from '../games/MusicPairs';
 
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -27,8 +29,7 @@ function createGame(io: TypedServer, room: any, mode: GameMode): BaseGame {
     case GameMode.ODD_ONE_OUT:
       return new OddOneOut(io, room);
     case GameMode.MUSIC_PAIRS:
-      // TODO: Implement in Milestone 4
-      return new OddOneOut(io, room); // Fallback for now
+      return new MusicPairs(io, room);
     case GameMode.FREEZE:
       // TODO: Implement in Milestone 4
       return new OddOneOut(io, room); // Fallback for now
@@ -62,13 +63,44 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
     socket.on('room:join', (payload: JoinRoomPayload) => {
       try {
         const parsed = JoinRoomPayload.parse(payload);
-        const { room, player } = roomManager.joinRoom(parsed.code, socket.id, parsed.playerName);
+        const { room, player } = roomManager.joinRoom(
+          parsed.code,
+          socket.id,
+          parsed.playerName,
+          parsed.isGuest ?? false
+        );
 
         socket.join(room.code);
-        socket.emit('room:joined', { room: room.toState() });
+        socket.emit('room:joined', { playerId: player.id, room: room.toState() });
         socket.to(room.code).emit('room:playerJoined', { player: player.toInfo() });
       } catch (err: any) {
         socket.emit('room:error', { message: err.message || 'Failed to join room' });
+      }
+    });
+
+    socket.on('room:rejoin', (payload: RejoinRoomPayload) => {
+      try {
+        const parsed = RejoinRoomPayload.parse(payload);
+        const result = roomManager.handleReconnect(
+          socket.id,
+          parsed.playerId,
+          parsed.code.toUpperCase()
+        );
+
+        if (!result) {
+          socket.emit('room:error', { message: 'Could not rejoin room. Session may have expired.' });
+          return;
+        }
+
+        const { room, player } = result;
+        socket.join(room.code);
+        socket.emit('room:rejoined', { playerId: player.id, room: room.toState() });
+        socket.to(room.code).emit('room:playerReconnected', { playerId: player.id });
+        io.to(room.code).emit('room:updated', { room: room.toState() });
+
+        console.log(`${player.name} rejoined room ${room.code}`);
+      } catch (err: any) {
+        socket.emit('room:error', { message: err.message || 'Failed to rejoin room' });
       }
     });
 
@@ -103,7 +135,9 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
         if (!result) return;
 
         const { room, player } = result;
-        player.spotifyDeviceId = parsed.spotifyDeviceId;
+        if (parsed.spotifyDeviceId) {
+          player.spotifyDeviceId = parsed.spotifyDeviceId;
+        }
         player.isReady = true;
 
         io.to(room.code).emit('room:updated', { room: room.toState() });
@@ -122,6 +156,11 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
 
       if (!player.isHost) {
         socket.emit('room:error', { message: 'Only the host can start the game' });
+        return;
+      }
+
+      if (!player.spotifyDeviceId) {
+        socket.emit('room:error', { message: 'Host must authenticate with Spotify to start the game' });
         return;
       }
 

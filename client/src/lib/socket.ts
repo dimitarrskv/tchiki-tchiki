@@ -12,9 +12,11 @@ export function getSocket(): TypedSocket {
     socket = io(SERVER_URL, {
       autoConnect: false,
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity, // Keep trying indefinitely
+      reconnectionDelay: 500, // Start faster (500ms)
+      reconnectionDelayMax: 5000, // Max 5s between attempts
+      timeout: 10000, // 10s connection timeout
+      transports: ['websocket', 'polling'], // Fallback to polling if WebSocket fails
     });
   }
   return socket;

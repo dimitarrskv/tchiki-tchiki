@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useSocket } from './SocketContext';
 import { useSpotify } from './SpotifyContext';
+import { saveSession, clearSession } from '../lib/sessionStorage';
 import type { RoomState, PlayerInfo, GameMode, GamePhase } from 'shared/src/types';
 
 interface GameContextValue {
@@ -8,8 +9,9 @@ interface GameContextValue {
   playerId: string | null;
   isHost: boolean;
   error: string | null;
+  phaseData: any;
   createRoom: (playerName: string) => void;
-  joinRoom: (code: string, playerName: string) => void;
+  joinRoom: (code: string, playerName: string, isGuest?: boolean) => void;
   leaveRoom: () => void;
   startGame: () => void;
   selectMode: (mode: GameMode) => void;
@@ -21,6 +23,7 @@ const GameContext = createContext<GameContextValue>({
   playerId: null,
   isHost: false,
   error: null,
+  phaseData: null,
   createRoom: () => {},
   joinRoom: () => {},
   leaveRoom: () => {},
@@ -35,6 +38,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [phaseData, setPhaseData] = useState<any>(null);
 
   const isHost = room?.hostId === playerId;
 
@@ -46,15 +50,42 @@ export function GameProvider({ children }: { children: ReactNode }) {
     socket.on('room:created', ({ code, room }) => {
       setRoom(room);
       // The first player (host) is always at index 0
-      setPlayerId(room.players[0]?.id ?? null);
+      const newPlayerId = room.players[0]?.id ?? null;
+      setPlayerId(newPlayerId);
       setError(null);
+
+      // Save session for reconnection
+      if (newPlayerId) {
+        saveSession({
+          roomCode: code,
+          playerId: newPlayerId,
+          playerName: room.players[0]?.name ?? '',
+          isHost: true,
+        });
+      }
     });
 
-    socket.on('room:joined', ({ room }) => {
+    socket.on('room:joined', ({ playerId, room }) => {
       setRoom(room);
-      // The joining player is the last one in the list
-      const me = room.players[room.players.length - 1];
-      setPlayerId(me?.id ?? null);
+      setPlayerId(playerId);
+      setError(null);
+
+      // Save session for reconnection
+      const player = room.players.find(p => p.id === playerId);
+      if (player) {
+        saveSession({
+          roomCode: room.code,
+          playerId: playerId,
+          playerName: player.name,
+          isHost: player.isHost,
+        });
+      }
+    });
+
+    socket.on('room:rejoined', ({ playerId, room }) => {
+      console.log('Successfully rejoined room');
+      setRoom(room);
+      setPlayerId(playerId);
       setError(null);
     });
 
@@ -78,19 +109,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     });
 
+    socket.on('room:playerReconnected', ({ playerId: reconnectedId }) => {
+      console.log(`Player ${reconnectedId} reconnected`);
+      // Room state will be updated via room:updated event
+    });
+
     socket.on('room:updated', ({ room }) => {
       setRoom(room);
     });
 
     socket.on('room:error', ({ message }) => {
+      // If rejoin failed due to expired session, clear it automatically
+      if (message.includes('Could not rejoin') || message.includes('Session may have expired')) {
+        clearSession();
+      }
       setError(message);
     });
 
-    socket.on('game:phaseChange', ({ phase }) => {
+    socket.on('game:phaseChange', ({ phase, data }) => {
       setRoom(prev => {
         if (!prev) return prev;
         return { ...prev, phase };
       });
+      setPhaseData(data || null);
     });
 
     socket.on('game:modeSelected', ({ mode }) => {
@@ -137,8 +178,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       socket.off('room:created');
       socket.off('room:joined');
+      socket.off('room:rejoined');
       socket.off('room:playerJoined');
       socket.off('room:playerLeft');
+      socket.off('room:playerReconnected');
       socket.off('room:updated');
       socket.off('room:error');
       socket.off('game:phaseChange');
@@ -157,14 +200,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     socket?.emit('room:create', { playerName });
   }, [socket]);
 
-  const joinRoom = useCallback((code: string, playerName: string) => {
-    socket?.emit('room:join', { code: code.toUpperCase(), playerName });
+  const joinRoom = useCallback((code: string, playerName: string, isGuest: boolean = false) => {
+    socket?.emit('room:join', { code: code.toUpperCase(), playerName, isGuest });
   }, [socket]);
 
   const leaveRoom = useCallback(() => {
     socket?.emit('room:leave');
     setRoom(null);
     setPlayerId(null);
+    clearSession(); // Clear saved session
   }, [socket]);
 
   const startGame = useCallback(() => {
@@ -186,6 +230,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         playerId,
         isHost,
         error,
+        phaseData,
         createRoom,
         joinRoom,
         leaveRoom,
