@@ -27,11 +27,11 @@ export function Playing() {
     };
   }, [socket]);
 
-  // Handle timer for PLAYING and VOTING phases
+  // Handle timer for PLAYING phase
   useEffect(() => {
     if (!room) return;
 
-    if (room.phase === GamePhase.PLAYING || room.phase === GamePhase.VOTING) {
+    if (room.phase === GamePhase.PLAYING) {
       const duration = phaseData?.durationMs || 0;
       setPhaseDuration(duration);
       setTimeRemaining(duration);
@@ -96,15 +96,7 @@ export function Playing() {
             </p>
             <div className="mt-8 text-text-muted text-sm font-mono border border-primary/30 rounded-lg p-4 bg-bg-card">
               <div className="text-primary mb-2">// OBJECTIVE</div>
-              {room.currentMode === 'odd-one-out' && (
-                <div>One player won't hear any music. Listen carefully and spot the faker!</div>
-              )}
-              {room.currentMode === 'music-pairs' && (
-                <div>Find the person hearing the same song as you!</div>
-              )}
-              {room.currentMode === 'freeze' && (
-                <div>Dance while music plays. Freeze when it stops!</div>
-              )}
+              <div>Find the person hearing the same song as you!</div>
             </div>
           </div>
         )}
@@ -112,16 +104,12 @@ export function Playing() {
         {room.phase === GamePhase.PLAYING && (
           <div className="w-full">
             <div className="text-4xl font-bold mb-4 text-primary neon-text">
-              {room.currentMode === 'odd-one-out' && '🎧 Listen Carefully'}
-              {room.currentMode === 'music-pairs' && '🎵 Find Your Match'}
-              {room.currentMode === 'freeze' && '💃 Dance!'}
+              🎵 Find Your Match
             </div>
 
             <div className="mb-4">
               <p className="text-text-muted mb-4 font-mono text-sm">
-                {room.currentMode === 'odd-one-out' && 'Vibe to the music and observe everyone'}
-                {room.currentMode === 'music-pairs' && 'Who is hearing the same song as you?'}
-                {room.currentMode === 'freeze' && 'Dance! Freeze when your music stops!'}
+                Who is hearing the same song as you?
               </p>
             </div>
 
@@ -145,73 +133,39 @@ export function Playing() {
               </div>
             </div>
 
-            {/* Show partner selection for Music Pairs mode */}
-            {room.currentMode === 'music-pairs' && (
-              <div className="space-y-2">
-                <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
-                  &gt; Select your match:
-                </div>
-                {room.players
-                  .filter(p => p.id !== playerId) // Don't show yourself
-                  .map(player => (
-                    <button
-                      key={player.id}
-                      onClick={() => handleClaimMatch(player.id)}
-                      className={`w-full p-3 rounded-lg border-2 transition-all font-mono text-sm ${
-                        selectedPartner === player.id
-                          ? 'bg-primary/20 border-primary text-primary shadow-[0_0_20px_rgba(0,240,255,0.4)]'
-                          : 'bg-bg-card border-primary/30 hover:border-primary hover:bg-bg-hover cursor-pointer hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-2 h-2 rounded-full ${player.isConnected ? 'bg-success' : 'bg-text-muted'}`}></div>
-                          <span className="uppercase tracking-wide">{player.name}</span>
-                        </div>
-                        {selectedPartner === player.id && (
-                          <span className="text-primary text-xs">[✓]</span>
-                        )}
+            {/* Partner selection */}
+            <div className="space-y-2">
+              <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
+                &gt; Select your match:
+              </div>
+              {room.players
+                .filter(p => p.id !== playerId) // Don't show yourself
+                .map(player => (
+                  <button
+                    key={player.id}
+                    onClick={() => handleClaimMatch(player.id)}
+                    className={`w-full p-3 rounded-lg border-2 transition-all font-mono text-sm ${
+                      selectedPartner === player.id
+                        ? 'bg-primary/20 border-primary text-primary shadow-[0_0_20px_rgba(0,240,255,0.4)]'
+                        : 'bg-bg-card border-primary/30 hover:border-primary hover:bg-bg-hover cursor-pointer hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${player.isConnected ? 'bg-success' : 'bg-text-muted'}`}></div>
+                        <span className="uppercase tracking-wide">{player.name}</span>
                       </div>
-                    </button>
-                  ))}
-                {selectedPartner && (
-                  <div className="mt-2 text-center text-success text-xs font-mono">
-                    ✓ Match selected • You can change it before time runs out
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {room.phase === GamePhase.VOTING && (
-          <div className="w-full">
-            <div className="text-4xl font-bold mb-4 text-primary neon-text">🗳️ Who is the Faker?</div>
-            <p className="text-text-muted mb-6 font-mono">Cast your vote below!</p>
-
-            {/* Timer */}
-            <div className="w-full max-w-md mx-auto mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-text-muted text-sm font-mono">&gt; TIME TO VOTE</span>
-                <span className="text-2xl font-bold font-mono text-warning">
-                  {formatTime(timeRemaining)}s
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="w-full h-3 bg-bg-card border-2 border-warning/30 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-warning to-warning/60 transition-all duration-100"
-                  style={{
-                    width: `${getProgress()}%`,
-                    boxShadow: '0 0 10px rgba(255, 159, 10, 0.6)'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Voting UI will be built in Milestone 3 */}
-            <div className="text-text-muted text-sm font-mono">
-              // Voting UI coming in Milestone 3
+                      {selectedPartner === player.id && (
+                        <span className="text-primary text-xs">[✓]</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              {selectedPartner && (
+                <div className="mt-2 text-center text-success text-xs font-mono">
+                  ✓ Match selected • You can change it before time runs out
+                </div>
+              )}
             </div>
           </div>
         )}

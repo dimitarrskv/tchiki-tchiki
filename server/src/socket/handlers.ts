@@ -6,16 +6,12 @@ import {
   JoinRoomPayload,
   RejoinRoomPayload,
   PlayerReadyPayload,
-  GameSelectPayload,
-  VotePayload,
   ClaimMatchPayload,
-  CatchPlayerPayload,
   GamePhase,
   GameMode,
 } from 'shared/src/types';
 import { RoomManager } from '../rooms/RoomManager';
 import { BaseGame } from '../games/BaseGame';
-import { OddOneOut } from '../games/OddOneOut';
 import { MusicPairs } from '../games/MusicPairs';
 
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -24,18 +20,8 @@ type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 // Active games per room
 const activeGames = new Map<string, BaseGame>();
 
-function createGame(io: TypedServer, room: any, mode: GameMode): BaseGame {
-  switch (mode) {
-    case GameMode.ODD_ONE_OUT:
-      return new OddOneOut(io, room);
-    case GameMode.MUSIC_PAIRS:
-      return new MusicPairs(io, room);
-    case GameMode.FREEZE:
-      // TODO: Implement in Milestone 4
-      return new OddOneOut(io, room); // Fallback for now
-    default:
-      return new OddOneOut(io, room);
-  }
+function createGame(io: TypedServer, room: any): BaseGame {
+  return new MusicPairs(io, room);
 }
 
 export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager): void {
@@ -169,56 +155,20 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
         return;
       }
 
-      room.phase = GamePhase.MODE_SELECT;
-      io.to(room.code).emit('game:phaseChange', { phase: GamePhase.MODE_SELECT });
-      io.to(room.code).emit('room:updated', { room: room.toState() });
-    });
+      // Set the mode to Music Pairs (only mode available)
+      room.currentMode = GameMode.MUSIC_PAIRS;
 
-    socket.on('game:select', (payload: GameSelectPayload) => {
-      try {
-        const parsed = GameSelectPayload.parse(payload);
-        const result = roomManager.getPlayerBySocketId(socket.id);
-        if (!result) return;
-
-        const { room, player } = result;
-
-        if (!player.isHost) {
-          socket.emit('room:error', { message: 'Only the host can select a game mode' });
-          return;
-        }
-
-        room.currentMode = parsed.mode;
-
-        // Clean up any previous game
-        const prevGame = activeGames.get(room.code);
-        if (prevGame) {
-          prevGame.cleanup();
-        }
-
-        // Create and start the game
-        const game = createGame(io, room, parsed.mode);
-        activeGames.set(room.code, game);
-
-        io.to(room.code).emit('game:modeSelected', { mode: parsed.mode });
-        game.start();
-      } catch (err: any) {
-        socket.emit('room:error', { message: err.message || 'Failed to select game' });
+      // Clean up any previous game
+      const prevGame = activeGames.get(room.code);
+      if (prevGame) {
+        prevGame.cleanup();
       }
-    });
 
-    socket.on('game:vote', (payload: VotePayload) => {
-      try {
-        const parsed = VotePayload.parse(payload);
-        const result = roomManager.getPlayerBySocketId(socket.id);
-        if (!result) return;
+      // Create and start the game
+      const game = createGame(io, room);
+      activeGames.set(room.code, game);
 
-        const game = activeGames.get(result.room.code);
-        if (game) {
-          game.handleVote(result.player.id, parsed.targetPlayerId);
-        }
-      } catch (err: any) {
-        socket.emit('room:error', { message: err.message || 'Failed to vote' });
-      }
+      game.start();
     });
 
     socket.on('game:claimMatch', (payload: ClaimMatchPayload) => {
@@ -236,21 +186,6 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
       }
     });
 
-    socket.on('game:catchPlayer', (payload: CatchPlayerPayload) => {
-      try {
-        const parsed = CatchPlayerPayload.parse(payload);
-        const result = roomManager.getPlayerBySocketId(socket.id);
-        if (!result) return;
-
-        const game = activeGames.get(result.room.code);
-        if (game) {
-          game.handleCatchPlayer(result.player.id, parsed.targetPlayerId);
-        }
-      } catch (err: any) {
-        socket.emit('room:error', { message: err.message || 'Failed to catch player' });
-      }
-    });
-
     socket.on('game:nextRound', () => {
       const result = roomManager.getPlayerBySocketId(socket.id);
       if (!result) return;
@@ -258,10 +193,16 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
       const { room, player } = result;
       if (!player.isHost) return;
 
-      // Go back to mode select for next round
-      room.phase = GamePhase.MODE_SELECT;
-      io.to(room.code).emit('game:phaseChange', { phase: GamePhase.MODE_SELECT });
-      io.to(room.code).emit('room:updated', { room: room.toState() });
+      // Clean up previous game
+      const prevGame = activeGames.get(room.code);
+      if (prevGame) {
+        prevGame.cleanup();
+      }
+
+      // Start a new round directly (no mode selection needed)
+      const game = createGame(io, room);
+      activeGames.set(room.code, game);
+      game.start();
     });
 
     socket.on('game:end', () => {

@@ -1,7 +1,6 @@
 import { useGame } from './context/GameContext';
 import { Home } from './pages/Home';
 import { Lobby } from './pages/Lobby';
-import { GameSelect } from './pages/GameSelect';
 import { Playing } from './pages/Playing';
 import { SpotifyCallback } from './pages/SpotifyCallback';
 import { ConnectionStatus } from './components/ConnectionStatus';
@@ -15,9 +14,8 @@ export function App() {
   const isPlaying = room?.phase && [
     GamePhase.COUNTDOWN,
     GamePhase.PLAYING,
-    GamePhase.VOTING,
-    GamePhase.MATCHING,
-    GamePhase.CATCHING,
+    GamePhase.REVEAL,
+    GamePhase.RESULTS,
   ].includes(room.phase);
 
   useWakeLock(!!isPlaying);
@@ -39,18 +37,10 @@ export function App() {
         content = <Lobby />;
         break;
 
-      case GamePhase.MODE_SELECT:
-        content = <GameSelect />;
-        break;
-
       case GamePhase.COUNTDOWN:
       case GamePhase.PLAYING:
-      case GamePhase.VOTING:
-      case GamePhase.MATCHING:
-      case GamePhase.CATCHING:
       case GamePhase.REVEAL:
       case GamePhase.RESULTS:
-      case GamePhase.FINAL_SCORES:
         content = <Playing />;
         break;
 

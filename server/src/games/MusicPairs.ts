@@ -1,6 +1,6 @@
 import { BaseGame, TypedServer, GameConfig } from './BaseGame';
 import { Room } from '../rooms/Room';
-import { GamePhase, PlayerRole } from 'shared/src/types';
+import { GamePhase } from 'shared/src/types';
 import { getRandomTrack } from '../spotify/tracks';
 
 interface MusicPairsState {
@@ -68,10 +68,10 @@ export class MusicPairs extends BaseGame {
 
     const players = this.getConnectedPlayers();
 
-    // Only send play events to authenticated players (hosts with Spotify)
-    const authenticatedPlayers = players.filter(
-      p => p.role === PlayerRole.HOST && p.spotifyDeviceId
-    );
+    // Send play events to all players with Spotify devices
+    const authenticatedPlayers = players.filter(p => p.spotifyDeviceId);
+
+    const serverTimestamp = Date.now(); // Capture timestamp for sync
 
     // Send the appropriate track to each player based on their pair
     for (const player of authenticatedPlayers) {
@@ -81,7 +81,7 @@ export class MusicPairs extends BaseGame {
 
       if (pairIndex >= 0) {
         const trackUri = this.state.trackUris[pairIndex];
-        this.emitToPlayer(player.socketId, 'game:play', { trackUri });
+        this.emitToPlayer(player.socketId, 'game:play', { trackUri, serverTimestamp });
       }
     }
 
@@ -98,11 +98,9 @@ export class MusicPairs extends BaseGame {
   }
 
   private stopAndResolve(): void {
-    // Stop music for authenticated players only
+    // Stop music for all players with Spotify devices
     const players = this.getConnectedPlayers();
-    const authenticatedPlayers = players.filter(
-      p => p.role === PlayerRole.HOST && p.spotifyDeviceId
-    );
+    const authenticatedPlayers = players.filter(p => p.spotifyDeviceId);
 
     for (const player of authenticatedPlayers) {
       this.emitToPlayer(player.socketId, 'game:stop');
@@ -191,7 +189,4 @@ export class MusicPairs extends BaseGame {
     }, 5000);
   }
 
-  // Not used in Music Pairs
-  handleVote(_playerId: string, _targetId: string): void {}
-  handleCatchPlayer(_playerId: string, _targetId: string): void {}
 }

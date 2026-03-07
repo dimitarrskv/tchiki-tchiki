@@ -5,6 +5,7 @@ import {
   refreshSpotifyToken,
   startPlayback,
   pausePlayback,
+  seekToPosition,
   clearTokens,
   SpotifyTokens,
 } from '../lib/spotify';
@@ -44,6 +45,8 @@ interface SpotifyContextValue {
   play: (trackUri: string) => Promise<void>;
   pause: () => Promise<void>;
   logout: () => void;
+  getPlaybackPosition: () => Promise<number | null>;
+  syncPlayback: (targetPositionMs: number) => Promise<void>;
 }
 
 const SpotifyContext = createContext<SpotifyContextValue>({
@@ -55,6 +58,8 @@ const SpotifyContext = createContext<SpotifyContextValue>({
   play: async () => {},
   pause: async () => {},
   logout: () => {},
+  getPlaybackPosition: async () => null,
+  syncPlayback: async () => {},
 });
 
 export function SpotifyProvider({ children }: { children: ReactNode }) {
@@ -190,8 +195,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   const play = useCallback(async (trackUri: string) => {
     const current = getStoredTokens();
     if (!current || !deviceId) {
-      // Silently skip playback for guests without authentication
-      console.log('Skipping playback: not authenticated');
+      console.error('Cannot play: not authenticated or no device');
       return;
     }
     await startPlayback(current.accessToken, deviceId, trackUri);
@@ -200,7 +204,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   const pause = useCallback(async () => {
     const current = getStoredTokens();
     if (!current || !deviceId) {
-      // Silently skip for guests
+      console.error('Cannot pause: not authenticated or no device');
       return;
     }
     await pausePlayback(current.accessToken, deviceId);
@@ -217,6 +221,30 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
     clearTokens();
   }, []);
 
+  const getPlaybackPosition = useCallback(async (): Promise<number | null> => {
+    if (!playerRef.current) return null;
+
+    const state = await playerRef.current.getCurrentState();
+    if (!state) return null;
+
+    return state.position; // Returns position in milliseconds
+  }, []);
+
+  const syncPlayback = useCallback(async (targetPositionMs: number) => {
+    const current = getStoredTokens();
+    if (!current || !deviceId) return;
+
+    const currentPosition = await getPlaybackPosition();
+    if (currentPosition === null) return;
+
+    // If we're more than 500ms out of sync, seek to correct position
+    const drift = Math.abs(currentPosition - targetPositionMs);
+    if (drift > 500) {
+      console.log(`Syncing: drift of ${drift}ms detected`);
+      await seekToPosition(current.accessToken, deviceId, targetPositionMs);
+    }
+  }, [deviceId, getPlaybackPosition]);
+
   return (
     <SpotifyContext.Provider
       value={{
@@ -228,6 +256,8 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
         play,
         pause,
         logout,
+        getPlaybackPosition,
+        syncPlayback,
       }}
     >
       {children}

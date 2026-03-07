@@ -41,8 +41,7 @@ export function Home() {
 
   const handleJoin = () => {
     if (!name.trim() || roomCode.length !== 4) return;
-    const isGuest = !isAuthenticated;
-    joinRoom(roomCode, name.trim(), isGuest);
+    joinRoom(roomCode, name.trim());
   };
 
   return (
@@ -123,8 +122,8 @@ export function Home() {
           )}
         </div>
 
-        {/* Spotify Authentication Required for Host */}
-        {!isAuthenticated && view === 'home' && (
+        {/* Spotify Authentication Required */}
+        {!isAuthenticated && (
           <div className="space-y-4">
             <button
               onClick={() => startSpotifyAuth(pendingJoinCode || undefined)}
@@ -133,67 +132,9 @@ export function Home() {
               <span>&gt; Connect Spotify</span>
             </button>
             <p className="text-text-muted text-xs text-center">
-              Link your Spotify Premium account to host a game
+              Link your Spotify Premium account to play
             </p>
-            <button
-              onClick={() => setView('join')}
-              disabled={!isConnected}
-              className="w-full bg-transparent hover:bg-bg-hover border-2 border-primary disabled:opacity-40 disabled:cursor-not-allowed text-primary font-bold py-4 rounded-lg text-lg transition-all hover:shadow-[0_0_20px_rgba(0,240,255,0.3)] uppercase tracking-wider"
-            >
-              &gt; Join as Guest
-            </button>
           </div>
-        )}
-
-        {/* Guest Join - No Authentication Required */}
-        {!isAuthenticated && view === 'join' && (
-          <>
-            <div className="bg-bg-card border-2 border-primary/30 rounded-lg p-4 mb-6 font-mono text-xs">
-              <p className="text-text-muted text-sm mb-2">
-                &gt; Joining as <span className="text-primary">GUEST</span>
-              </p>
-              <p className="text-text-muted text-xs">
-                No Spotify authentication needed. The host will play music.
-              </p>
-            </div>
-
-            {/* Name input */}
-            <div className="mb-6">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="&gt; ENTER YOUR NAME"
-                maxLength={20}
-                className="w-full bg-bg-card border-2 border-primary/50 rounded-lg px-4 py-3 text-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary transition-all uppercase tracking-wider"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, 4))}
-                placeholder="XXXX"
-                maxLength={4}
-                className="w-full bg-bg-card border-2 border-secondary/50 rounded-lg px-4 py-3 text-2xl text-center font-mono tracking-[0.5em] text-primary placeholder:text-text-muted placeholder:tracking-normal focus:outline-none focus:border-secondary transition-all"
-                style={{ textShadow: '0 0 10px rgba(0, 240, 255, 0.5)' }}
-              />
-              <button
-                onClick={handleJoin}
-                disabled={!name.trim() || roomCode.length !== 4 || !isConnected}
-                className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
-              >
-                &gt; Join as Guest
-              </button>
-              <button
-                onClick={() => { setView('home'); setRoomCode(''); clearError(); }}
-                className="w-full text-text-muted hover:text-primary py-2 text-sm transition-colors uppercase tracking-wide"
-              >
-                &lt; Back
-              </button>
-            </div>
-          </>
         )}
 
         {/* Player Initializing - Show message */}
@@ -267,7 +208,7 @@ export function Home() {
 
       {/* Footer */}
       <div className="text-center text-xs text-text-muted py-4 uppercase tracking-widest">
-        [ Creator Requires Spotify Premium ]
+        [ Spotify Premium Required ]
       </div>
     </MobileShell>
   );

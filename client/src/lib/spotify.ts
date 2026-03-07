@@ -205,6 +205,16 @@ export async function pausePlayback(
   });
 }
 
+export async function seekToPosition(
+  accessToken: string,
+  deviceId: string,
+  positionMs: number
+): Promise<void> {
+  await spotifyFetch(`/me/player/seek?position_ms=${positionMs}&device_id=${deviceId}`, accessToken, {
+    method: 'PUT',
+  });
+}
+
 export async function getUserProfile(accessToken: string) {
   const res = await spotifyFetch('/me', accessToken);
   return res.json();

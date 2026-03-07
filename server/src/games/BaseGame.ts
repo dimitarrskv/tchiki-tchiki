@@ -29,9 +29,7 @@ export abstract class BaseGame {
   }
 
   abstract start(): void;
-  abstract handleVote(playerId: string, targetId: string): void;
   abstract handleClaimMatch(playerId: string, partnerId: string): void;
-  abstract handleCatchPlayer(playerId: string, targetId: string): void;
 
   protected emit(event: string, data?: any): void {
     this.io.to(this.room.code).emit(event as any, data);

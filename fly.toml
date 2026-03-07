@@ -1,7 +1,7 @@
 # fly.toml app configuration file
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 
-app = "spotifight" # Change this to your unique app name
+app = "app-restless-snowflake-9345"
 primary_region = "iad" # Change to your preferred region (iad=US East)
 
 [build]

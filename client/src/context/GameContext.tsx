@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { useSocket } from './SocketContext';
 import { useSpotify } from './SpotifyContext';
 import { saveSession, clearSession } from '../lib/sessionStorage';
-import type { RoomState, PlayerInfo, GameMode, GamePhase } from 'shared/src/types';
+import type { RoomState, PlayerInfo, GamePhase } from 'shared/src/types';
 
 interface GameContextValue {
   room: RoomState | null;
@@ -11,10 +11,9 @@ interface GameContextValue {
   error: string | null;
   phaseData: any;
   createRoom: (playerName: string) => void;
-  joinRoom: (code: string, playerName: string, isGuest?: boolean) => void;
+  joinRoom: (code: string, playerName: string) => void;
   leaveRoom: () => void;
   startGame: () => void;
-  selectMode: (mode: GameMode) => void;
   clearError: () => void;
 }
 
@@ -28,13 +27,12 @@ const GameContext = createContext<GameContextValue>({
   joinRoom: () => {},
   leaveRoom: () => {},
   startGame: () => {},
-  selectMode: () => {},
   clearError: () => {},
 });
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const { socket } = useSocket();
-  const { play, pause } = useSpotify();
+  const { play, pause, syncPlayback } = useSpotify();
   const [room, setRoom] = useState<RoomState | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -134,13 +132,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setPhaseData(data || null);
     });
 
-    socket.on('game:modeSelected', ({ mode }) => {
-      setRoom(prev => {
-        if (!prev) return prev;
-        return { ...prev, currentMode: mode };
-      });
-    });
-
     socket.on('game:scores', ({ scores }) => {
       setRoom(prev => {
         if (!prev) return prev;
@@ -156,18 +147,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
 
     // Music playback events
-    socket.on('game:play', ({ trackUri }: { trackUri: string }) => {
-      console.log('Playing track:', trackUri);
-      play(trackUri).catch(err => {
+    socket.on('game:play', async ({ trackUri, serverTimestamp }: { trackUri: string; serverTimestamp: number }) => {
+      console.log('Received play command at', Date.now(), 'sent at', serverTimestamp);
+
+      try {
+        // Start playback
+        await play(trackUri);
+
+        // Wait for playback to actually start (give it 500ms)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Calculate how much time has elapsed since server sent the command
+        const elapsedMs = Date.now() - serverTimestamp;
+
+        // Sync to correct position (accounting for network/processing delay)
+        if (elapsedMs > 100) {  // Only sync if delay is significant
+          await syncPlayback(elapsedMs);
+        }
+      } catch (err) {
         console.error('Failed to play track:', err);
         setError('Failed to play music. Make sure Spotify is connected.');
-      });
-    });
-
-    socket.on('game:silence', () => {
-      console.log('Silence for faker');
-      // Faker gets silence - optionally pause or do nothing
-      pause().catch(err => console.error('Failed to pause:', err));
+      }
     });
 
     socket.on('game:stop', () => {
@@ -185,14 +185,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socket.off('room:updated');
       socket.off('room:error');
       socket.off('game:phaseChange');
-      socket.off('game:modeSelected');
       socket.off('game:scores');
       socket.off('game:ended');
       socket.off('game:play');
-      socket.off('game:silence');
       socket.off('game:stop');
     };
-  }, [socket, play, pause]);
+  }, [socket, play, pause, syncPlayback]);
 
   // ─── Actions ───────────────────────────────────────────
 
@@ -200,8 +198,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     socket?.emit('room:create', { playerName });
   }, [socket]);
 
-  const joinRoom = useCallback((code: string, playerName: string, isGuest: boolean = false) => {
-    socket?.emit('room:join', { code: code.toUpperCase(), playerName, isGuest });
+  const joinRoom = useCallback((code: string, playerName: string) => {
+    socket?.emit('room:join', { code: code.toUpperCase(), playerName });
   }, [socket]);
 
   const leaveRoom = useCallback(() => {
@@ -213,10 +211,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const startGame = useCallback(() => {
     socket?.emit('game:start');
-  }, [socket]);
-
-  const selectMode = useCallback((mode: GameMode) => {
-    socket?.emit('game:select', { mode });
   }, [socket]);
 
   const clearError = useCallback(() => {
@@ -235,7 +229,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
         joinRoom,
         leaveRoom,
         startGame,
-        selectMode,
         clearError,
       }}
     >
