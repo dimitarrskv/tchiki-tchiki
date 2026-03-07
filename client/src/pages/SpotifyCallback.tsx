@@ -10,6 +10,8 @@ export function SpotifyCallback() {
     const code = params.get('code');
     const errorParam = params.get('error');
 
+    console.log('[SpotifyCallback] Params:', { code: code?.slice(0, 10) + '...', errorParam });
+
     if (errorParam) {
       setError(`Spotify authorization denied: ${errorParam}`);
       return;
@@ -20,19 +22,27 @@ export function SpotifyCallback() {
       return;
     }
 
+    console.log('[SpotifyCallback] Exchanging code for tokens...');
     handleSpotifyCallback(code)
-      .then(() => {
+      .then((tokens) => {
+        console.log('[SpotifyCallback] Tokens received, redirecting...', {
+          hasAccessToken: !!tokens.accessToken,
+          expiresAt: new Date(tokens.expiresAt).toISOString(),
+        });
         // Redirect back to the app (optionally with room code)
         const state = getAuthState();
         clearAuthState();
 
         if (state?.roomCode) {
+          console.log('[SpotifyCallback] Redirecting to home with room code:', state.roomCode);
           window.location.href = `/?code=${state.roomCode}`;
         } else {
+          console.log('[SpotifyCallback] Redirecting to home');
           window.location.href = '/';
         }
       })
       .catch((err) => {
+        console.error('[SpotifyCallback] Error:', err);
         setError(err.message || 'Failed to complete Spotify authentication');
       });
   }, []);

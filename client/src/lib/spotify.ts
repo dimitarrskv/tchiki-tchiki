@@ -24,16 +24,33 @@ export interface SpotifyTokens {
 
 export function getStoredTokens(): SpotifyTokens | null {
   const data = sessionStorage.getItem(TOKEN_KEY);
-  if (!data) return null;
+  if (!data) {
+    console.log('[Spotify] No tokens found in sessionStorage');
+    return null;
+  }
   try {
-    return JSON.parse(data);
+    const tokens = JSON.parse(data);
+    console.log('[Spotify] Retrieved tokens from sessionStorage:', {
+      hasAccessToken: !!tokens.accessToken,
+      hasRefreshToken: !!tokens.refreshToken,
+      expiresAt: new Date(tokens.expiresAt).toISOString(),
+      isExpired: Date.now() >= tokens.expiresAt,
+    });
+    return tokens;
   } catch {
+    console.error('[Spotify] Failed to parse tokens from sessionStorage');
     return null;
   }
 }
 
 export function storeTokens(tokens: SpotifyTokens): void {
+  console.log('[Spotify] Storing tokens:', {
+    hasAccessToken: !!tokens.accessToken,
+    hasRefreshToken: !!tokens.refreshToken,
+    expiresAt: new Date(tokens.expiresAt).toISOString(),
+  });
   sessionStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+  console.log('[Spotify] Tokens stored in sessionStorage');
 }
 
 export function clearTokens(): void {
@@ -76,6 +93,12 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 // ─── Auth Flow ───────────────────────────────────────────
 
 export async function startSpotifyAuth(roomCode?: string): Promise<void> {
+  console.log('[Spotify] Starting auth flow...', {
+    clientId: CLIENT_ID?.slice(0, 10) + '...',
+    redirectUri: REDIRECT_URI,
+    roomCode,
+  });
+
   if (!CLIENT_ID) {
     console.error('VITE_SPOTIFY_CLIENT_ID is not set');
     return;
@@ -101,7 +124,9 @@ export async function startSpotifyAuth(roomCode?: string): Promise<void> {
     state,
   });
 
-  window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  console.log('[Spotify] Redirecting to:', authUrl);
+  window.location.href = authUrl;
 }
 
 export async function handleSpotifyCallback(code: string): Promise<SpotifyTokens> {

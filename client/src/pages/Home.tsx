@@ -14,6 +14,11 @@ export function Home() {
   const [roomCode, setRoomCode] = useState('');
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[Home] Auth state:', { isAuthenticated, isPlayerReady, isPremium });
+  }, [isAuthenticated, isPlayerReady, isPremium]);
+
   // Check for room code in URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
