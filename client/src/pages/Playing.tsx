@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { useSocket } from '../context/SocketContext';
 import { MobileShell } from '../components/layout/MobileShell';
 import { Header } from '../components/layout/Header';
+import { CircularTimer } from '../components/game/CircularTimer';
 import { GamePhase } from 'shared/src/types';
 
 export function Playing() {
@@ -80,16 +81,6 @@ export function Playing() {
 
   if (!room) return null;
 
-  const formatTime = (ms: number) => {
-    const seconds = Math.ceil(ms / 1000);
-    return seconds;
-  };
-
-  const getProgress = () => {
-    if (phaseDuration === 0) return 0;
-    return ((phaseDuration - timeRemaining) / phaseDuration) * 100;
-  };
-
   return (
     <MobileShell>
       <Header />
@@ -127,24 +118,12 @@ export function Playing() {
               </p>
             </div>
 
-            {/* Timer */}
-            <div className="w-full max-w-md mx-auto mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-text-muted text-sm font-mono">&gt; TIME</span>
-                <span className="text-2xl font-bold font-mono text-primary">
-                  {formatTime(timeRemaining)}s
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="w-full h-3 bg-bg-card border-2 border-primary/30 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-100"
-                  style={{
-                    width: `${getProgress()}%`,
-                    boxShadow: '0 0 10px rgba(0, 240, 255, 0.6)'
-                  }}
-                />
-              </div>
+            {/* Circular Timer */}
+            <div className="w-full max-w-md mx-auto mb-6 flex justify-center">
+              <CircularTimer
+                timeRemaining={timeRemaining}
+                totalDuration={phaseDuration}
+              />
             </div>
 
             {/* Partner selection */}

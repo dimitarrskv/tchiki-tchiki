@@ -132,43 +132,37 @@ export class MusicPairs extends BaseGame {
   private resolveMatches(): void {
     if (!this.state) return;
 
-    // Check which claims were correct
     const matchedCorrectly: [string, string][] = [];
 
-    for (const [playerId, claimedPartnerId] of this.state.claims.entries()) {
-      // Find the actual pair for this player
-      const actualPair = this.state.pairs.find(
-        pair => pair[0] === playerId || pair[1] === playerId
-      );
+    // Check each pair to see if BOTH players correctly identified each other
+    for (const [player1Id, player2Id] of this.state.pairs) {
+      // Solo player case (odd number of players)
+      if (player1Id === player2Id) {
+        // Solo players don't need to match, skip scoring
+        continue;
+      }
 
-      if (!actualPair) continue;
+      // Check if player1 claimed player2
+      const player1Claim = this.state.claims.get(player1Id);
+      const player1Correct = player1Claim === player2Id;
 
-      // Check if they claimed the correct partner
-      const correctPartner = actualPair[0] === playerId ? actualPair[1] : actualPair[0];
+      // Check if player2 claimed player1
+      const player2Claim = this.state.claims.get(player2Id);
+      const player2Correct = player2Claim === player1Id;
 
-      if (claimedPartnerId === correctPartner) {
-        // Check if this match hasn't been added yet (both partners matched correctly)
-        const alreadyAdded = matchedCorrectly.some(
-          match => (match[0] === playerId && match[1] === correctPartner) ||
-                   (match[1] === playerId && match[0] === correctPartner)
-        );
-
-        if (!alreadyAdded) {
-          matchedCorrectly.push([playerId, correctPartner]);
-        }
+      // Both must be correct for the pair to match
+      if (player1Correct && player2Correct) {
+        matchedCorrectly.push([player1Id, player2Id]);
       }
     }
 
     // Scoring: Each player in a correctly matched pair gets 2 points
     for (const [player1, player2] of matchedCorrectly) {
-      // Award points to both players in the matched pair
       const current1 = this.room.scores.get(player1) || 0;
       this.room.scores.set(player1, current1 + 2);
 
-      if (player1 !== player2) { // Don't double-award if solo player
-        const current2 = this.room.scores.get(player2) || 0;
-        this.room.scores.set(player2, current2 + 2);
-      }
+      const current2 = this.room.scores.get(player2) || 0;
+      this.room.scores.set(player2, current2 + 2);
     }
 
     // Reveal phase
