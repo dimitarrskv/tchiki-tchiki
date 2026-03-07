@@ -1,37 +1,23 @@
-# fly.toml app configuration file
+# fly.toml app configuration file generated for tchiki-tchiki on 2026-03-07T17:44:13Z
+#
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "tchiki-tchiki"
-primary_region = "iad" # Change to your preferred region (iad=US East)
+app = 'tchiki-tchiki'
+primary_region = 'iad'
 
 [build]
-
-[env]
-  PORT = "8080"
-  NODE_ENV = "production"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "off"  # Keep machines running (important for WebSocket!)
+  auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 1    # Always keep at least 1 machine running
+  min_machines_running = 0
+  processes = ['app']
 
-  [http_service.concurrency]
-    type = "connections"
-    hard_limit = 1000
-    soft_limit = 800
-
-  # Health check configuration
-  [[http_service.checks]]
-    interval = "15s"
-    timeout = "10s"
-    grace_period = "30s"
-    method = "GET"
-    path = "/api/health"
-
-# VM resources (free tier: shared-cpu-1x with 256MB)
 [[vm]]
-  memory = '256mb'
+  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 1024
