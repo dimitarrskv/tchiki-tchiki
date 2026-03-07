@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+@theme {
+  /* Neon Spotify Fusion - Spotify meets Cyberpunk */
+  --color-bg: #0a0e27;
+  --color-bg-card: #0f1419;
+  --color-bg-hover: #1a1f2e;
+  --color-primary: #1ed760;
+  --color-primary-hover: #1fdf64;
+  --color-secondary: #ff006e;
+  --color-accent: #9d4edd;
+  --color-success: #1ed760;
+  --color-warning: #ffbe0b;
+  --color-text: #e0f7ff;
+  --color-text-muted: #8892b0;
+  --color-border: #1ed760;
+  --color-neon-cyan: #00f0ff;
+  --color-neon-pink: #ff006e;
+  --color-neon-purple: #9d4edd;
+  --color-neon-green: #1ed760;
+}
+
+html, body, #root {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Cyberpunk effects */
+
+/* Scanlines effect */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(30, 215, 96, 0.03),
+    rgba(30, 215, 96, 0.03) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Grid background */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(rgba(30, 215, 96, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 215, 96, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Neon glow keyframes */
+@keyframes neon-pulse {
+  0%, 100% {
+    text-shadow:
+      0 0 4px var(--color-primary),
+      0 0 11px var(--color-primary),
+      0 0 19px var(--color-primary);
+  }
+  50% {
+    text-shadow:
+      0 0 2px var(--color-primary),
+      0 0 8px var(--color-primary),
+      0 0 14px var(--color-primary);
+  }
+}
+
+@keyframes border-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 5px var(--color-primary),
+      0 0 10px var(--color-primary),
+      inset 0 0 5px rgba(0, 240, 255, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 10px var(--color-primary),
+      0 0 20px var(--color-primary),
+      inset 0 0 10px rgba(0, 240, 255, 0.2);
+  }
+}
+
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+/* Utility classes for cyberpunk effects */
+.neon-text {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+.neon-border {
+  animation: border-pulse 2s ease-in-out infinite;
+}
+
+.glitch-hover:hover {
+  animation: glitch 0.3s ease-in-out;
+}
+
+/* Button glow effects */
+button:not(:disabled) {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+/* Input focus glow */
+input:focus {
+  box-shadow:
+    0 0 10px rgba(30, 215, 96, 0.5),
+    0 0 20px rgba(30, 215, 96, 0.3);
+}
+
+/* Cyberpunk scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-card);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(30, 215, 96, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-hover);
+  box-shadow: 0 0 15px rgba(30, 215, 96, 0.8);
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(30, 215, 96, 0.3);
+  color: var(--color-text);
+}
+
+/* Terminal cursor effect */
+@keyframes cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.terminal-cursor::after {
+  content: '▌';
+  animation: cursor-blink 1s infinite;
+  color: var(--color-primary);
+}
