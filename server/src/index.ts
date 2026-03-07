@@ -5,7 +5,7 @@ import cors from 'cors';
 import { config } from './config';
 import { RoomManager } from './rooms/RoomManager';
 import { registerSocketHandlers } from './socket/handlers';
-import type { ClientToServerEvents, ServerToClientEvents } from 'shared/src/types';
+import type { ClientToServerEvents, ServerToClientEvents } from 'shared';
 
 const app = express();
 const httpServer = createServer(app);

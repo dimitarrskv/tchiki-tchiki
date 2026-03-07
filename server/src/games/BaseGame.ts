@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { Room } from '../rooms/Room';
-import { GamePhase, ClientToServerEvents, ServerToClientEvents } from 'shared/src/types';
+import { GamePhase, ClientToServerEvents, ServerToClientEvents } from 'shared';
 
 export type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 

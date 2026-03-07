@@ -15,8 +15,8 @@ RUN npm ci
 COPY shared ./shared
 COPY server ./server
 
-# Build server (shared is just types, no build needed)
-RUN npm run build -w server
+# Build shared and server
+RUN npm run build -w shared && npm run build -w server
 
 # Production stage
 FROM node:20-alpine
@@ -32,7 +32,7 @@ COPY server/package*.json ./server/
 RUN npm ci --omit=dev
 
 # Copy built files from builder
-COPY --from=builder /app/shared/src ./shared/src
+COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/shared/package.json ./shared/
 COPY --from=builder /app/server/dist ./server/dist
 

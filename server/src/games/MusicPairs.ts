@@ -1,6 +1,6 @@
 import { BaseGame, TypedServer, GameConfig } from './BaseGame';
 import { Room } from '../rooms/Room';
-import { GamePhase } from 'shared/src/types';
+import { GamePhase } from 'shared';
 import { getRandomTrack } from '../spotify/tracks';
 
 interface MusicPairsState {

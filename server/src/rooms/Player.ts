@@ -1,4 +1,4 @@
-import { PlayerInfo } from 'shared/src/types';
+import { PlayerInfo } from 'shared';
 
 export class Player {
   id: string;

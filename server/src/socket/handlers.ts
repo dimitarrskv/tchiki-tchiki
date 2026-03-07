@@ -9,7 +9,7 @@ import {
   ClaimMatchPayload,
   GamePhase,
   GameMode,
-} from 'shared/src/types';
+} from 'shared';
 import { RoomManager } from '../rooms/RoomManager';
 import { BaseGame } from '../games/BaseGame';
 import { MusicPairs } from '../games/MusicPairs';

@@ -1,4 +1,4 @@
-import { GamePhase, GameMode, RoomState } from 'shared/src/types';
+import { GamePhase, GameMode, RoomState } from 'shared';
 import { Player } from './Player';
 
 const MAX_PLAYERS = 12;
