@@ -52,8 +52,7 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
         const { room, player } = roomManager.joinRoom(
           parsed.code,
           socket.id,
-          parsed.playerName,
-          parsed.isGuest ?? false
+          parsed.playerName
         );
 
         socket.join(room.code);
