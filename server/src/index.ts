@@ -29,7 +29,7 @@ app.get('/api/health', (_req, res) => {
 const roomManager = new RoomManager();
 registerSocketHandlers(io, roomManager);
 
-httpServer.listen(config.port, () => {
+httpServer.listen(config.port, '0.0.0.0', () => {
   console.log(`🎵 Spotifight server running on port ${config.port}`);
 });
 
