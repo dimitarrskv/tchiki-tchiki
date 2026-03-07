@@ -190,7 +190,7 @@ export function Playing() {
                 animation: 'slideInFromTop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
               }}
             >
-              🎵 Find Your Match
+              Find Your Match
             </div>
 
             <div className="mb-4">
@@ -257,14 +257,14 @@ export function Playing() {
                         <span className="uppercase tracking-wide">{player.name}</span>
                       </div>
                       {selectedPartner === player.id && (
-                        <span className="text-primary text-xs">[✓]</span>
+                        <span className="text-primary text-xs">[SELECTED]</span>
                       )}
                     </div>
                   </button>
                 ))}
               {selectedPartner && (
                 <div className="mt-2 text-center text-success text-xs font-mono">
-                  ✓ Match selected • You can change it before time runs out
+                  Match selected • You can change it before time runs out
                 </div>
               )}
             </div>
@@ -281,7 +281,7 @@ export function Playing() {
               }}
             >
               <div className="text-4xl font-bold mb-2 text-primary neon-text">
-                {room.phase === GamePhase.REVEAL ? '🎭 Reveal' : '📊 Results'}
+                {room.phase === GamePhase.REVEAL ? 'Reveal' : 'Results'}
               </div>
               <p className="text-text-muted font-mono text-sm">
                 {room.phase === GamePhase.REVEAL ? 'Here are the pairs...' : `Round ${room.roundNumber} Complete`}
@@ -369,10 +369,10 @@ export function Playing() {
                           )}
                         </div>
                         {isCorrect && (
-                          <span className="text-success text-lg">✓</span>
+                          <span className="text-success text-xs font-mono">[MATCH]</span>
                         )}
                         {!isCorrect && !isSolo && (
-                          <span className="text-text-muted text-lg">✗</span>
+                          <span className="text-text-muted text-xs font-mono">[MISS]</span>
                         )}
                       </div>
                     </div>
@@ -424,7 +424,7 @@ export function Playing() {
                   onClick={nextRound}
                   className="w-full bg-primary text-bg-primary font-bold py-3 px-4 rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] font-mono uppercase tracking-wide"
                 >
-                  ▶ Next Round
+                  Next Round
                 </button>
                 <button
                   onClick={endGame}

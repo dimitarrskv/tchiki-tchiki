@@ -19,13 +19,13 @@ export function ConnectionStatus() {
       )}
       {connectionState === 'disconnected' && (
         <>
-          <span className="connection-icon">⚠️</span>
+          <span className="connection-icon">!</span>
           <span>Connection lost</span>
         </>
       )}
       {connectionState === 'reconnected' && (
         <>
-          <span className="connection-icon">✓</span>
+          <span className="connection-icon">OK</span>
           <span>Reconnected!</span>
         </>
       )}
