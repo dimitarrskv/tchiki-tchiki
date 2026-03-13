@@ -20,13 +20,21 @@ export function Home() {
     }
   }, []);
 
+  // Unlock audio playback on mobile browsers (requires user gesture)
+  const unlockAudio = () => {
+    const silence = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+    silence.play().catch(() => {});
+  };
+
   const handleCreate = () => {
     if (!name.trim()) return;
+    unlockAudio();
     createRoom(name.trim());
   };
 
   const handleJoin = () => {
     if (!name.trim() || roomCode.length !== 4) return;
+    unlockAudio();
     joinRoom(roomCode, name.trim());
   };
 
