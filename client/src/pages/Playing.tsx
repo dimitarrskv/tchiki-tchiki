@@ -4,16 +4,28 @@ import { useSocket } from '../context/SocketContext';
 import { MobileShell } from '../components/layout/MobileShell';
 import { Header } from '../components/layout/Header';
 import { CircularTimer } from '../components/game/CircularTimer';
+import { useCountdownSound } from '../hooks/useCountdownSound';
 import { GamePhase } from 'shared/src/types';
+import { ShareButton } from '../components/game/ShareButton';
+
+interface TrackInfo {
+  name: string;
+  artist: string;
+  imageUrl: string;
+}
 
 export function Playing() {
-  const { room, playerId, phaseData, pairResults, isHost, nextRound, endGame } = useGame();
+  const { room, playerId, phaseData, pairResults, isHost, nextRound, endGame, returnToLobby } = useGame();
   const { socket } = useSocket();
   const [countdown, setCountdown] = useState<number>(3);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [phaseDuration, setPhaseDuration] = useState<number>(0);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
   const phaseStartTimeRef = useRef<number | null>(null);
+  const [trackInfoMap, setTrackInfoMap] = useState<Record<string, TrackInfo>>({});
+
+  // Play countdown sounds
+  useCountdownSound(countdown, room?.phase === GamePhase.COUNTDOWN);
 
   // Listen for countdown events
   useEffect(() => {
@@ -34,22 +46,16 @@ export function Playing() {
     if (!room) return;
 
     if (room.phase === GamePhase.PLAYING && phaseStartTimeRef.current === null) {
-      // Use server timestamp if available, otherwise fall back to client time
       const serverTimestamp = phaseData?.serverTimestamp;
       if (serverTimestamp) {
         phaseStartTimeRef.current = serverTimestamp;
-        console.log('⏱️  Using server timestamp for timer sync:', serverTimestamp);
       } else {
         phaseStartTimeRef.current = Date.now();
-        console.warn('⚠️  No server timestamp, using client time');
       }
       const duration = phaseData?.durationMs || 0;
       setPhaseDuration(duration);
-      console.log('⏱️  Timer initialized - Duration:', duration, 'ms');
     } else if (room.phase !== GamePhase.PLAYING) {
-      // Reset start time when leaving PLAYING phase
       phaseStartTimeRef.current = null;
-      console.log('⏱️  Timer reset - left PLAYING phase');
     }
   }, [room?.phase, phaseData]);
 
@@ -75,10 +81,27 @@ export function Playing() {
     }
   }, [room?.phase, phaseDuration]);
 
-  // Reset selected partner when entering playing phase
+  // Build track info map from server-provided metadata
+  useEffect(() => {
+    if (!pairResults?.trackUris || !pairResults.trackMeta) return;
+
+    const map: Record<string, TrackInfo> = {};
+    pairResults.trackUris.forEach((uri, i) => {
+      const meta = pairResults.trackMeta[i];
+      if (meta) {
+        map[uri] = { name: meta.name, artist: meta.artist, imageUrl: meta.imageUrl };
+      }
+    });
+    setTrackInfoMap(map);
+  }, [pairResults?.trackUris, pairResults?.trackMeta]);
+
+  // Reset state when phase changes
   useEffect(() => {
     if (room?.phase === GamePhase.PLAYING) {
       setSelectedPartner(null);
+    }
+    if (room?.phase !== GamePhase.COUNTDOWN) {
+      setCountdown(0);
     }
   }, [room?.phase]);
 
@@ -96,6 +119,11 @@ export function Playing() {
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
         {room.phase === GamePhase.COUNTDOWN && (
           <div className="w-full">
+            {/* Round Number */}
+            <div className="mb-4 text-text-muted font-mono text-sm uppercase tracking-wide">
+              Round {room.roundNumber}
+            </div>
+
             {/* Animated Countdown Number */}
             <div
               key={countdown}
@@ -139,7 +167,7 @@ export function Playing() {
                 animation: 'fadeInUp 0.6s ease-out'
               }}
             >
-              &gt; Put your headphones on...
+              {'>'} Put your headphones on...
             </p>
 
             <div
@@ -152,7 +180,6 @@ export function Playing() {
               <div>Find the person hearing the same song as you!</div>
             </div>
 
-            {/* Add keyframe animations via style tag */}
             <style>{`
               @keyframes countdownPop {
                 0% {
@@ -183,17 +210,23 @@ export function Playing() {
         )}
 
         {room.phase === GamePhase.PLAYING && (
-          <div className="w-full">
+          <div className="w-full relative">
+            {/* Round Number */}
+            <div className="mb-2 text-text-muted font-mono text-sm uppercase tracking-wide relative z-10">
+              Round {room.roundNumber}
+            </div>
+
             <div
-              className="text-4xl font-bold mb-4 text-primary neon-text"
+              className="text-4xl font-bold mb-4 text-primary relative z-10"
               style={{
-                animation: 'slideInFromTop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                animation: 'slideInFromTop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                textShadow: '0 0 20px var(--color-primary)',
               }}
             >
               Find Your Match
             </div>
 
-            <div className="mb-4">
+            <div className="mb-4 relative z-10">
               <p
                 className="text-text-muted mb-4 font-mono text-sm"
                 style={{
@@ -227,7 +260,7 @@ export function Playing() {
             `}</style>
 
             {/* Circular Timer */}
-            <div className="w-full max-w-md mx-auto mb-6 flex justify-center">
+            <div className="w-full max-w-md mx-auto mb-6 flex justify-center relative z-10">
               <CircularTimer
                 timeRemaining={timeRemaining}
                 totalDuration={phaseDuration}
@@ -235,20 +268,20 @@ export function Playing() {
             </div>
 
             {/* Partner selection */}
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-10">
               <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
-                &gt; Select your match:
+                {'>'} Select your match:
               </div>
               {room.players
-                .filter(p => p.id !== playerId) // Don't show yourself
+                .filter(p => p.id !== playerId)
                 .map(player => (
                   <button
                     key={player.id}
                     onClick={() => handleClaimMatch(player.id)}
-                    className={`w-full p-3 rounded-lg border-2 transition-all font-mono text-sm ${
+                    className={`w-full p-3 rounded-lg border-2 transition-colors font-mono text-sm ${
                       selectedPartner === player.id
-                        ? 'bg-primary/20 border-primary text-primary shadow-[0_0_20px_rgba(0,240,255,0.4)]'
-                        : 'bg-bg-card border-primary/30 hover:border-primary hover:bg-bg-hover cursor-pointer hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                        ? 'bg-primary/20 border-primary text-primary'
+                        : 'bg-bg-card border-primary/30 hover:border-primary hover:bg-bg-hover cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -264,7 +297,7 @@ export function Playing() {
                 ))}
               {selectedPartner && (
                 <div className="mt-2 text-center text-success text-xs font-mono">
-                  Match selected • You can change it before time runs out
+                  Match selected - You can change it before time runs out
                 </div>
               )}
             </div>
@@ -324,18 +357,20 @@ export function Playing() {
                     animation: 'fadeIn 0.5s ease-out'
                   }}
                 >
-                  &gt; Pairs:
+                  {'>'} Pairs:
                 </div>
                 {pairResults.pairs.map((pair, index) => {
                   const [player1Id, player2Id] = pair;
                   const player1 = room.players.find(p => p.id === player1Id);
                   const player2 = room.players.find(p => p.id === player2Id);
 
-                  // Check if this pair matched correctly
-                  const isCorrect = pairResults.matchedCorrectly.some(
+                  const isPerfectMatch = pairResults.matchedCorrectly.some(
                     match => (match[0] === player1Id && match[1] === player2Id) ||
                              (match[1] === player1Id && match[0] === player2Id)
                   );
+
+                  const player1Correct = pairResults.correctGuesses?.includes(player1Id);
+                  const player2Correct = pairResults.correctGuesses?.includes(player2Id);
 
                   const isSolo = player1Id === player2Id;
 
@@ -343,37 +378,67 @@ export function Playing() {
                     <div
                       key={index}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        isCorrect
+                        isPerfectMatch
                           ? 'bg-success/10 border-success shadow-[0_0_20px_rgba(0,255,128,0.3)]'
+                          : (player1Correct || player2Correct)
+                          ? 'bg-primary/5 border-primary/50'
                           : 'bg-bg-card border-primary/30'
                       }`}
                       style={{
                         animation: `slideInLeft 0.5s ease-out ${index * 0.1}s both`
                       }}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="font-mono text-sm uppercase tracking-wide">
-                            {player1?.name || 'Unknown'}
-                          </span>
-                          {!isSolo && (
-                            <>
-                              <span className="text-primary">↔</span>
-                              <span className="font-mono text-sm uppercase tracking-wide">
-                                {player2?.name || 'Unknown'}
-                              </span>
-                            </>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className={`font-mono text-sm uppercase tracking-wide ${
+                              player1Correct ? 'text-primary' : ''
+                            }`}>
+                              {player1?.name || 'Unknown'}
+                              {player1Correct && !isPerfectMatch && ' ✓'}
+                            </span>
+                            {!isSolo && (
+                              <>
+                                <span className="text-primary">↔</span>
+                                <span className={`font-mono text-sm uppercase tracking-wide ${
+                                  player2Correct ? 'text-primary' : ''
+                                }`}>
+                                  {player2?.name || 'Unknown'}
+                                  {player2Correct && !isPerfectMatch && ' ✓'}
+                                </span>
+                              </>
+                            )}
+                            {isSolo && (
+                              <span className="text-text-muted text-xs">(solo)</span>
+                            )}
+                          </div>
+                          {isPerfectMatch && (
+                            <span className="text-success text-xs font-mono">[MATCH]</span>
                           )}
-                          {isSolo && (
-                            <span className="text-text-muted text-xs">(solo)</span>
+                          {!isPerfectMatch && (player1Correct || player2Correct) && !isSolo && (
+                            <span className="text-primary text-xs font-mono">[PARTIAL]</span>
+                          )}
+                          {!isPerfectMatch && !player1Correct && !player2Correct && !isSolo && (
+                            <span className="text-text-muted text-xs font-mono">[MISS]</span>
                           )}
                         </div>
-                        {isCorrect && (
-                          <span className="text-success text-xs font-mono">[MATCH]</span>
-                        )}
-                        {!isCorrect && !isSolo && (
-                          <span className="text-text-muted text-xs font-mono">[MISS]</span>
-                        )}
+                        {/* Song info */}
+                        {pairResults.trackUris?.[index] && trackInfoMap[pairResults.trackUris[index]] && (() => {
+                          const track = trackInfoMap[pairResults.trackUris[index]];
+                          return (
+                            <div className="flex items-center gap-3 mt-1 pt-2 border-t border-primary/10">
+                              <img
+                                src={track.imageUrl}
+                                alt={track.name}
+                                className="w-10 h-10 rounded"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-mono text-xs text-primary truncate">{track.name}</div>
+                                <div className="font-mono text-xs text-text-muted truncate">{track.artist}</div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
@@ -384,7 +449,7 @@ export function Playing() {
             {/* Scores */}
             <div className="mb-6">
               <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
-                &gt; Scores:
+                {'>'} Scores:
               </div>
               <div className="bg-bg-card border-2 border-primary/30 rounded-lg p-4">
                 <div className="space-y-2">
@@ -443,6 +508,145 @@ export function Playing() {
             )}
           </div>
         )}
+
+        {room.phase === GamePhase.GAME_OVER && (() => {
+          const sortedPlayers = [...room.players].sort(
+            (a, b) => (room.scores[b.id] || 0) - (room.scores[a.id] || 0)
+          );
+          const myRank = sortedPlayers.findIndex(p => p.id === playerId) + 1;
+          const myScore = room.scores[playerId!] || 0;
+          const amWinner = sortedPlayers[0]?.id === playerId && myScore > 0;
+
+          return (
+            <div className="w-full max-w-md">
+              {/* Header */}
+              <div
+                className="text-center mb-6"
+                style={{
+                  animation: 'revealBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
+              >
+                <div className="text-5xl font-bold mb-4 text-primary neon-text">
+                  Game Over
+                </div>
+                <p className="text-text-muted font-mono text-sm">
+                  {room.roundNumber} {room.roundNumber === 1 ? 'round' : 'rounds'} played
+                </p>
+              </div>
+
+              {/* Final Standings */}
+              <div className="mb-6">
+                <div className="text-xs text-text-muted font-mono mb-3 uppercase tracking-wide">
+                  {'>'} Final Standings:
+                </div>
+                <div className="space-y-2">
+                  {sortedPlayers.map((player, index) => {
+                    const score = room.scores[player.id] || 0;
+                    const isCurrentPlayer = player.id === playerId;
+                    const isWinner = index === 0 && score > 0;
+
+                    return (
+                      <div
+                        key={player.id}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          isWinner
+                            ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(0,240,255,0.4)]'
+                            : 'bg-bg-card border-primary/30'
+                        }`}
+                        style={{
+                          animation: `slideInLeft 0.5s ease-out ${index * 0.1}s both`
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className={`text-2xl font-bold ${
+                              isWinner ? 'text-primary' : 'text-text-muted'
+                            }`}>
+                              #{index + 1}
+                            </span>
+                            <div>
+                              <div className={`font-mono uppercase tracking-wide ${
+                                isCurrentPlayer ? 'text-primary font-bold' : ''
+                              }`}>
+                                {player.name}
+                                {isCurrentPlayer && ' (you)'}
+                              </div>
+                              {isWinner && (
+                                <div className="text-xs text-primary font-mono">
+                                  Winner
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className={`text-2xl font-bold font-mono ${
+                            score > 0 ? 'text-success' : 'text-text-muted'
+                          }`}>
+                            {score}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Statistics */}
+              <div className="mb-6 p-4 bg-bg-card border-2 border-primary/30 rounded-lg">
+                <div className="text-xs text-text-muted font-mono mb-3 uppercase tracking-wide">
+                  {'>'} Game Stats:
+                </div>
+                <div className="space-y-2 font-mono text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Total Rounds:</span>
+                    <span className="text-primary">{room.roundNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Players:</span>
+                    <span className="text-primary">{room.players.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Total Points:</span>
+                    <span className="text-primary">
+                      {Object.values(room.scores).reduce((sum, score) => sum + score, 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Share Button */}
+              <div className="mb-4">
+                <ShareButton
+                  data={{
+                    playerName: room.players.find(p => p.id === playerId)?.name || 'Player',
+                    playerRank: myRank,
+                    playerScore: myScore,
+                    totalPlayers: room.players.length,
+                    totalRounds: room.roundNumber,
+                    isWinner: amWinner,
+                    appUrl: window.location.host,
+                  }}
+                />
+              </div>
+
+              {/* Host Controls */}
+              {isHost && (
+                <button
+                  onClick={returnToLobby}
+                  className="w-full bg-primary text-bg-primary font-bold py-4 px-4 rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] font-mono uppercase tracking-wide"
+                >
+                  Return to Lobby
+                </button>
+              )}
+
+              {/* Non-host message */}
+              {!isHost && (
+                <div className="text-center text-text-muted text-sm font-mono">
+                  Waiting for host to return to lobby...
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </MobileShell>
   );

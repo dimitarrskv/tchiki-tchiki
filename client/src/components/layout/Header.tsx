@@ -13,7 +13,7 @@ export function Header() {
             {room.code}
           </div>
           <div className="text-xs text-text-muted font-mono">
-            &gt; {room.players.length} user{room.players.length !== 1 ? 's' : ''}
+            {'>'} {room.players.length} user{room.players.length !== 1 ? 's' : ''}
           </div>
         </div>
       </div>

@@ -39,9 +39,9 @@ export abstract class BaseGame {
     this.io.to(socketId).emit(event as any, data);
   }
 
-  protected setPhase(phase: GamePhase): void {
+  protected setPhase(phase: GamePhase, data?: any): void {
     this.room.phase = phase;
-    this.emit('game:phaseChange', { phase });
+    this.emit('game:phaseChange', { phase, data });
     this.emit('room:updated', { room: this.room.toState() });
   }
 

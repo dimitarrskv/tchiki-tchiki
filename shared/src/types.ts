@@ -8,6 +8,7 @@ export enum GamePhase {
   PLAYING = 'playing',
   REVEAL = 'reveal',
   RESULTS = 'results',
+  GAME_OVER = 'game_over',
 }
 
 export enum GameMode {
@@ -45,9 +46,18 @@ export interface RoundData {
   listenDuration?: number;
 }
 
+export interface TrackMeta {
+  name: string;
+  artist: string;
+  imageUrl: string;
+}
+
 export interface PairResult {
   pairs: [string, string][];
   matchedCorrectly: [string, string][];
+  correctGuesses: string[]; // Player IDs who guessed correctly (individual or as part of perfect match)
+  trackUris: string[]; // One track URI per pair, aligned with pairs array
+  trackMeta: TrackMeta[]; // Metadata per pair, aligned with trackUris
 }
 
 // ─── Socket Event Payloads ───────────────────────────────────
@@ -72,9 +82,7 @@ export const RejoinRoomPayload = z.object({
 });
 export type RejoinRoomPayload = z.infer<typeof RejoinRoomPayload>;
 
-export const PlayerReadyPayload = z.object({
-  spotifyDeviceId: z.string().optional(),
-});
+export const PlayerReadyPayload = z.object({});
 export type PlayerReadyPayload = z.infer<typeof PlayerReadyPayload>;
 
 export const ClaimMatchPayload = z.object({
@@ -94,6 +102,7 @@ export interface ClientToServerEvents {
   'game:claimMatch': (payload: ClaimMatchPayload) => void;
   'game:nextRound': () => void;
   'game:end': () => void;
+  'game:returnToLobby': () => void;
 }
 
 export interface ServerToClientEvents {
@@ -106,7 +115,14 @@ export interface ServerToClientEvents {
   'room:error': (payload: { message: string }) => void;
   'room:updated': (payload: { room: RoomState }) => void;
   'game:countdown': (payload: { count: number }) => void;
-  'game:play': (payload: { trackUri: string; serverTimestamp: number }) => void;
+  'game:play': (payload: {
+    trackUri: string;
+    serverTimestamp: number;
+    previewUrl: string | null;
+    trackName: string;
+    trackArtist: string;
+    trackArt: string;
+  }) => void;
   'game:stop': () => void;
   'game:phaseChange': (payload: { phase: GamePhase; data?: any }) => void;
   'game:pairResults': (payload: PairResult) => void;

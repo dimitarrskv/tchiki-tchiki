@@ -3,7 +3,6 @@ import { useSocket } from './context/SocketContext';
 import { Home } from './pages/Home';
 import { Lobby } from './pages/Lobby';
 import { Playing } from './pages/Playing';
-import { SpotifyCallback } from './pages/SpotifyCallback';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { MobileShell } from './components/layout/MobileShell';
 import { useWakeLock } from './hooks/useWakeLock';
@@ -19,14 +18,10 @@ export function App() {
     GamePhase.PLAYING,
     GamePhase.REVEAL,
     GamePhase.RESULTS,
+    GamePhase.GAME_OVER,
   ].includes(room.phase);
 
   useWakeLock(!!isPlaying);
-
-  // Handle Spotify OAuth callback
-  if (window.location.pathname === '/spotify-callback') {
-    return <SpotifyCallback />;
-  }
 
   let content;
 
@@ -60,6 +55,7 @@ export function App() {
       case GamePhase.PLAYING:
       case GamePhase.REVEAL:
       case GamePhase.RESULTS:
+      case GamePhase.GAME_OVER:
         content = <Playing />;
         break;
 

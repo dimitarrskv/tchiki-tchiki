@@ -115,14 +115,11 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
 
     socket.on('player:ready', (payload: PlayerReadyPayload) => {
       try {
-        const parsed = PlayerReadyPayload.parse(payload);
+        PlayerReadyPayload.parse(payload);
         const result = roomManager.getPlayerBySocketId(socket.id);
         if (!result) return;
 
         const { room, player } = result;
-        if (parsed.spotifyDeviceId) {
-          player.spotifyDeviceId = parsed.spotifyDeviceId;
-        }
         player.isReady = true;
 
         io.to(room.code).emit('room:updated', { room: room.toState() });
@@ -141,11 +138,6 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
 
       if (!player.isHost) {
         socket.emit('room:error', { message: 'Only the host can start the game' });
-        return;
-      }
-
-      if (!player.spotifyDeviceId) {
-        socket.emit('room:error', { message: 'Host must authenticate with Spotify to start the game' });
         return;
       }
 
@@ -223,13 +215,28 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
         activeGames.delete(room.code);
       }
 
-      room.phase = GamePhase.LOBBY;
+      // Set to GAME_OVER phase to show final results
+      room.phase = GamePhase.GAME_OVER;
       room.currentMode = null;
-      room.roundNumber = 0;
 
       io.to(room.code).emit('game:ended', {
         finalScores: Object.fromEntries(room.scores),
       });
+      io.to(room.code).emit('room:updated', { room: room.toState() });
+    });
+
+    socket.on('game:returnToLobby', () => {
+      const result = roomManager.getPlayerBySocketId(socket.id);
+      if (!result) return;
+
+      const { room, player } = result;
+      if (!player.isHost) return;
+
+      // Return to lobby and reset scores
+      room.phase = GamePhase.LOBBY;
+      room.roundNumber = 0;
+      room.scores.clear();
+
       io.to(room.code).emit('room:updated', { room: room.toState() });
     });
 

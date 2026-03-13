@@ -144,11 +144,17 @@ body::after {
 
 /* Utility classes for cyberpunk effects */
 .neon-text {
-  animation: neon-pulse 2s ease-in-out infinite;
+  text-shadow:
+    0 0 4px var(--color-primary),
+    0 0 11px var(--color-primary),
+    0 0 19px var(--color-primary);
 }
 
 .neon-border {
-  animation: border-pulse 2s ease-in-out infinite;
+  box-shadow:
+    0 0 5px var(--color-primary),
+    0 0 10px var(--color-primary),
+    inset 0 0 5px rgba(0, 240, 255, 0.1);
 }
 
 .glitch-hover:hover {
@@ -208,4 +214,14 @@ input:focus {
   content: '▌';
   animation: cursor-blink 1s infinite;
   color: var(--color-primary);
+}
+
+/* Beat-reactive effects (driven by CSS custom properties from useBeatSync) */
+
+.beat-reactive-border {
+  box-shadow: 0 0 calc(5px * var(--beat-intensity, 0)) rgba(30, 215, 96, calc(0.3 * var(--beat-intensity, 0)));
+}
+
+.beat-reactive-border.border-primary {
+  box-shadow: 0 0 calc(20px + 15px * var(--beat-intensity, 0)) rgba(0, 240, 255, calc(0.4 + 0.3 * var(--beat-intensity, 0)));
 }

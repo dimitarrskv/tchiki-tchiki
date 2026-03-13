@@ -66,8 +66,8 @@ export function PlayerCard({ player, isMe }: PlayerCardProps) {
           {!player.isConnected
             ? '// Reconnecting...'
             : player.isReady
-            ? '&gt; Stream active'
-            : '&gt; Linking stream...'}
+            ? '> Stream active'
+            : '> Linking stream...'}
         </div>
       </div>
       <div

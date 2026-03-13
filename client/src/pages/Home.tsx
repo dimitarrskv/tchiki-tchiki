@@ -1,43 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { useSocket } from '../context/SocketContext';
-import { useSpotify } from '../context/SpotifyContext';
-import { startSpotifyAuth } from '../lib/spotify';
 import { MobileShell } from '../components/layout/MobileShell';
 
 export function Home() {
   const { createRoom, joinRoom, error, clearError } = useGame();
   const { isConnected } = useSocket();
-  const { isAuthenticated, isPlayerReady, isPremium } = useSpotify();
   const [view, setView] = useState<'home' | 'join'>('home');
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
-  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
-
-  // Debug logging
-  useEffect(() => {
-    console.log('[Home] Auth state:', { isAuthenticated, isPlayerReady, isPremium });
-  }, [isAuthenticated, isPlayerReady, isPremium]);
 
   // Check for room code in URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code && code.length === 4) {
-      setPendingJoinCode(code.toUpperCase());
+      setRoomCode(code.toUpperCase());
       setView('join');
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
-
-  // Auto-fill join code when authenticated if there was a pending code
-  useEffect(() => {
-    if (isAuthenticated && pendingJoinCode) {
-      setRoomCode(pendingJoinCode);
-      setPendingJoinCode(null);
-    }
-  }, [isAuthenticated, pendingJoinCode]);
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -54,7 +37,6 @@ export function Home() {
       <div className="flex-1 flex flex-col pt-16">
         {/* Logo / Title */}
         <div className="text-center mb-10">
-          {/* Pixelated TCHIKI-TCHIKI Logo */}
           <div className="mb-6 flex justify-center">
             <div className="font-mono text-primary leading-[0.9]" style={{
               textShadow: '0 0 15px rgba(30, 215, 96, 0.9), 0 0 30px rgba(30, 215, 96, 0.6), 0 0 45px rgba(30, 215, 96, 0.3)'
@@ -69,10 +51,6 @@ export function Home() {
               </pre>
             </div>
           </div>
-
-          <p className="text-text-muted text-sm tracking-wide font-mono">
-            &gt; CONNECT_HEADPHONES :: PLAY_TOGETHER
-          </p>
         </div>
 
         {/* System Console */}
@@ -85,27 +63,13 @@ export function Home() {
             <div className="flex items-start gap-2">
               <span className="text-primary/50">[SYS]</span>
               <span className={isConnected ? 'text-success' : 'text-warning animate-pulse'}>
-                {isConnected ? '✓ Server connected' : '◌ Connecting to server...'}
+                {isConnected ? '+ Server connected' : 'o Connecting to server...'}
               </span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-primary/50">[AUTH]</span>
-              <span className={isAuthenticated ? 'text-success' : 'text-text-muted/50'}>
-                {isAuthenticated ? '✓ Spotify authenticated' : '○ Awaiting authentication'}
-              </span>
+              <span className="text-primary/50">[MODE]</span>
+              <span className="text-success">+ Audio ready (30s preview clips)</span>
             </div>
-            {isAuthenticated && (
-              <div className="flex items-start gap-2">
-                <span className="text-primary/50">[STREAM]</span>
-                <span className={isPlayerReady ? 'text-success' : 'text-warning'}>
-                  {isPlayerReady
-                    ? '✓ Audio stream active'
-                    : isPremium === false
-                      ? '✗ Premium account required'
-                      : '◌ Initializing stream...'}
-                </span>
-              </div>
-            )}
             {error && (
               <div className="flex items-start gap-2 mt-2 pt-2 border-t border-secondary/20">
                 <span className="text-secondary">[ERR]</span>
@@ -119,7 +83,7 @@ export function Home() {
               </div>
             )}
           </div>
-          {isPlayerReady && (
+          {isConnected && (
             <div className="mt-3 pt-3 border-t border-success/20 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
               <span className="text-success text-sm uppercase tracking-wider">Ready for battle</span>
@@ -127,93 +91,66 @@ export function Home() {
           )}
         </div>
 
-        {/* Spotify Authentication Required */}
-        {!isAuthenticated && (
-          <div className="space-y-4">
+        {/* Name input */}
+        <div className="mb-6">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="> ENTER YOUR NAME"
+            maxLength={20}
+            className="w-full bg-bg-card border-2 border-primary/50 rounded-lg px-4 py-3 text-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary transition-all uppercase tracking-wider"
+          />
+        </div>
+
+        {view === 'home' ? (
+          <div className="flex gap-3">
             <button
-              onClick={() => startSpotifyAuth(pendingJoinCode || undefined)}
-              className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-all uppercase tracking-wider shadow-[0_0_20px_rgba(29,185,84,0.4)] hover:shadow-[0_0_30px_rgba(29,185,84,0.6)]"
+              onClick={handleCreate}
+              disabled={!name.trim() || !isConnected}
+              className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
             >
-              <span>&gt; Connect Spotify</span>
+              {'>'} Create
             </button>
-            <p className="text-text-muted text-xs text-center">
-              Link your Spotify Premium account to play
-            </p>
+            <button
+              onClick={() => setView('join')}
+              disabled={!isConnected}
+              className="flex-1 bg-transparent hover:bg-bg-hover border-2 border-primary disabled:opacity-40 disabled:cursor-not-allowed text-primary font-bold py-4 rounded-lg text-lg transition-all hover:shadow-[0_0_20px_rgba(0,240,255,0.3)] uppercase tracking-wider"
+            >
+              {'>'} Join
+            </button>
           </div>
-        )}
-
-        {/* Player Initializing - Show message */}
-        {isAuthenticated && !isPlayerReady && isPremium === false && (
-          <div className="text-center text-warning text-sm uppercase tracking-wide">
-            ! Please upgrade to Spotify Premium
+        ) : (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, 4))}
+              placeholder="XXXX"
+              maxLength={4}
+              className="w-full bg-bg-card border-2 border-secondary/50 rounded-lg px-4 py-3 text-2xl text-center font-mono tracking-[0.5em] text-primary placeholder:text-text-muted placeholder:tracking-normal focus:outline-none focus:border-secondary transition-all"
+              style={{ textShadow: '0 0 10px rgba(0, 240, 255, 0.5)' }}
+            />
+            <button
+              onClick={handleJoin}
+              disabled={!name.trim() || roomCode.length !== 4 || !isConnected}
+              className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
+            >
+              {'>'} Join
+            </button>
+            <button
+              onClick={() => { setView('home'); setRoomCode(''); clearError(); }}
+              className="w-full text-text-muted hover:text-primary py-2 text-sm transition-colors uppercase tracking-wide"
+            >
+              {'<'} Back
+            </button>
           </div>
-        )}
-
-        {/* Ready - Show Create/Join Options */}
-        {isPlayerReady && (
-          <>
-            {/* Name input */}
-            <div className="mb-6">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="&gt; ENTER YOUR NAME"
-                maxLength={20}
-                className="w-full bg-bg-card border-2 border-primary/50 rounded-lg px-4 py-3 text-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary transition-all uppercase tracking-wider"
-              />
-            </div>
-
-            {view === 'home' ? (
-              <div className="space-y-3">
-                <button
-                  onClick={handleCreate}
-                  disabled={!name.trim() || !isConnected}
-                  className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
-                >
-                  &gt; Create Game
-                </button>
-                <button
-                  onClick={() => setView('join')}
-                  disabled={!isConnected}
-                  className="w-full bg-transparent hover:bg-bg-hover border-2 border-primary disabled:opacity-40 disabled:cursor-not-allowed text-primary font-bold py-4 rounded-lg text-lg transition-all hover:shadow-[0_0_20px_rgba(0,240,255,0.3)] uppercase tracking-wider"
-                >
-                  &gt; Join Game
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, 4))}
-                  placeholder="XXXX"
-                  maxLength={4}
-                  className="w-full bg-bg-card border-2 border-secondary/50 rounded-lg px-4 py-3 text-2xl text-center font-mono tracking-[0.5em] text-primary placeholder:text-text-muted placeholder:tracking-normal focus:outline-none focus:border-secondary transition-all"
-                  style={{ textShadow: '0 0 10px rgba(0, 240, 255, 0.5)' }}
-                />
-                <button
-                  onClick={handleJoin}
-                  disabled={!name.trim() || roomCode.length !== 4 || !isConnected}
-                  className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
-                >
-                  &gt; Join
-                </button>
-                <button
-                  onClick={() => { setView('home'); setRoomCode(''); clearError(); }}
-                  className="w-full text-text-muted hover:text-primary py-2 text-sm transition-colors uppercase tracking-wide"
-                >
-                  &lt; Back
-                </button>
-              </div>
-            )}
-          </>
         )}
       </div>
 
       {/* Footer */}
       <div className="text-center text-xs text-text-muted py-4 uppercase tracking-widest">
-        [ Spotify Premium Required ]
+        [ 30s Preview Clips - No Account Needed ]
       </div>
     </MobileShell>
   );

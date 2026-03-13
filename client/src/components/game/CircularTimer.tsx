@@ -68,7 +68,7 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
           strokeLinecap="round"
           style={{
             transition: 'stroke-dashoffset 0.1s linear, stroke 0.3s ease',
-            filter: `drop-shadow(0 0 8px ${colors.glow})`
+            filter: `drop-shadow(0 0 calc(8px + 12px * var(--beat-intensity, 0)) ${colors.glow})`,
           }}
         />
       </svg>
@@ -77,7 +77,7 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
         <div className="text-center">
           <div className={`text-5xl font-bold font-mono ${colors.text} transition-colors duration-300`}
             style={{
-              textShadow: `0 0 20px ${colors.glow}`
+              textShadow: `0 0 calc(20px + 15px * var(--beat-intensity, 0)) ${colors.glow}`,
             }}
           >
             {seconds}

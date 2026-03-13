@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { useSocket } from './SocketContext';
-import { useSpotify } from './SpotifyContext';
 import { saveSession, clearSession } from '../lib/sessionStorage';
-import type { RoomState, PlayerInfo, GamePhase, PairResult } from 'shared/src/types';
+import type { RoomState, GamePhase, PairResult, TrackMeta } from 'shared/src/types';
 
 interface GameContextValue {
   room: RoomState | null;
@@ -11,12 +10,15 @@ interface GameContextValue {
   error: string | null;
   phaseData: any;
   pairResults: PairResult | null;
+  currentTrackUri: string | null;
+  currentTrackMeta: TrackMeta | null;
   createRoom: (playerName: string) => void;
   joinRoom: (code: string, playerName: string) => void;
   leaveRoom: () => void;
   startGame: () => void;
   nextRound: () => void;
   endGame: () => void;
+  returnToLobby: () => void;
   clearError: () => void;
 }
 
@@ -27,23 +29,29 @@ const GameContext = createContext<GameContextValue>({
   error: null,
   phaseData: null,
   pairResults: null,
+  currentTrackUri: null,
+  currentTrackMeta: null,
   createRoom: () => {},
   joinRoom: () => {},
   leaveRoom: () => {},
   startGame: () => {},
   nextRound: () => {},
   endGame: () => {},
+  returnToLobby: () => {},
   clearError: () => {},
 });
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const { socket } = useSocket();
-  const { play, pause, syncPlayback } = useSpotify();
+
   const [room, setRoom] = useState<RoomState | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [phaseData, setPhaseData] = useState<any>(null);
   const [pairResults, setPairResults] = useState<PairResult | null>(null);
+  const [currentTrackUri, setCurrentTrackUri] = useState<string | null>(null);
+  const [currentTrackMeta, setCurrentTrackMeta] = useState<TrackMeta | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const isHost = room?.hostId === playerId;
 
@@ -54,12 +62,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     socket.on('room:created', ({ code, room }) => {
       setRoom(room);
-      // The first player (host) is always at index 0
       const newPlayerId = room.players[0]?.id ?? null;
       setPlayerId(newPlayerId);
       setError(null);
 
-      // Save session for reconnection
       if (newPlayerId) {
         saveSession({
           roomCode: code,
@@ -75,7 +81,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setPlayerId(playerId);
       setError(null);
 
-      // Save session for reconnection
       const player = room.players.find(p => p.id === playerId);
       if (player) {
         saveSession({
@@ -116,7 +121,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     socket.on('room:playerReconnected', ({ playerId: reconnectedId }) => {
       console.log(`Player ${reconnectedId} reconnected`);
-      // Room state will be updated via room:updated event
     });
 
     socket.on('room:updated', ({ room }) => {
@@ -124,7 +128,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
 
     socket.on('room:error', ({ message }) => {
-      // If rejoin failed due to expired session, clear it automatically
       if (message.includes('Could not rejoin') || message.includes('Session may have expired')) {
         clearSession();
       }
@@ -153,48 +156,46 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     });
 
-    // Music playback events
-    socket.on('game:play', async ({ trackUri, serverTimestamp }: { trackUri: string; serverTimestamp: number }) => {
-      console.log('🎵 Received play command:', {
-        trackUri,
-        serverTimestamp,
-        receivedAt: Date.now(),
-        delay: Date.now() - serverTimestamp
-      });
+    // Music playback via HTML5 Audio
+    socket.on('game:play', async ({ trackUri, serverTimestamp, previewUrl, trackName, trackArtist, trackArt }) => {
+      console.log('Received play command:', { trackUri, previewUrl: !!previewUrl });
+
+      setCurrentTrackUri(trackUri);
+      setCurrentTrackMeta({ name: trackName, artist: trackArtist || '', imageUrl: trackArt || '' });
 
       try {
-        // Start playback
-        console.log('🎵 Starting playback...');
-        await play(trackUri);
-        console.log('🎵 Playback started successfully');
+        if (!previewUrl) {
+          setError('Preview URL unavailable for this track');
+          return;
+        }
+        if (previewAudioRef.current) {
+          previewAudioRef.current.pause();
+          previewAudioRef.current = null;
+        }
+        const audio = new Audio(previewUrl);
+        audio.volume = 0.8;
+        previewAudioRef.current = audio;
+        await audio.play();
 
-        // Wait for playback to actually start (give it 500ms)
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Calculate how much time has elapsed since server sent the command
+        // Sync position if needed
         const elapsedMs = Date.now() - serverTimestamp;
-        console.log('🎵 Elapsed time since server sent command:', elapsedMs, 'ms');
-
-        // Sync to correct position (accounting for network/processing delay)
-        if (elapsedMs > 100) {  // Only sync if delay is significant
-          console.log('🎵 Syncing playback to position:', elapsedMs, 'ms');
-          await syncPlayback(elapsedMs);
-          console.log('🎵 Playback synced');
+        if (elapsedMs > 500) {
+          audio.currentTime = elapsedMs / 1000;
         }
       } catch (err: any) {
-        console.error('❌ Failed to play track:', err);
-        console.error('❌ Error details:', {
-          message: err?.message,
-          stack: err?.stack,
-          name: err?.name
-        });
-        setError(`Failed to play music: ${err?.message || 'Unknown error'}. Make sure Spotify is connected.`);
+        console.error('Failed to play track:', err);
+        setError(`Failed to play music: ${err?.message || 'Unknown error'}`);
       }
     });
 
     socket.on('game:stop', () => {
       console.log('Stopping music');
-      pause().catch(err => console.error('Failed to stop:', err));
+      setCurrentTrackUri(null);
+      setCurrentTrackMeta(null);
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
     });
 
     socket.on('game:pairResults', (results: PairResult) => {
@@ -218,7 +219,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socket.off('game:stop');
       socket.off('game:pairResults');
     };
-  }, [socket, play, pause, syncPlayback]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket]);
 
   // ─── Actions ───────────────────────────────────────────
 
@@ -234,7 +236,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     socket?.emit('room:leave');
     setRoom(null);
     setPlayerId(null);
-    clearSession(); // Clear saved session
+    clearSession();
   }, [socket]);
 
   const startGame = useCallback(() => {
@@ -243,12 +245,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const nextRound = useCallback(() => {
     socket?.emit('game:nextRound');
-    setPairResults(null); // Clear previous results
+    setPairResults(null);
   }, [socket]);
 
   const endGame = useCallback(() => {
     socket?.emit('game:end');
-    setPairResults(null); // Clear results
+    setPairResults(null);
+  }, [socket]);
+
+  const returnToLobby = useCallback(() => {
+    socket?.emit('game:returnToLobby');
+    setPairResults(null);
   }, [socket]);
 
   const clearError = useCallback(() => {
@@ -264,12 +271,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
         error,
         phaseData,
         pairResults,
+        currentTrackUri,
+        currentTrackMeta,
         createRoom,
         joinRoom,
         leaveRoom,
         startGame,
         nextRound,
         endGame,
+        returnToLobby,
         clearError,
       }}
     >

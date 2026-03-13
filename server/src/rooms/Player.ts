@@ -7,7 +7,6 @@ export class Player {
   isHost: boolean;
   isReady: boolean;
   isConnected: boolean;
-  spotifyDeviceId: string | null;
   disconnectedAt: number | null;
 
   constructor(id: string, name: string, socketId: string, isHost: boolean) {
@@ -17,7 +16,6 @@ export class Player {
     this.isHost = isHost;
     this.isReady = false;
     this.isConnected = true;
-    this.spotifyDeviceId = null;
     this.disconnectedAt = null;
   }
 
