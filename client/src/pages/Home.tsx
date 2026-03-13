@@ -6,17 +6,15 @@ import { MobileShell } from '../components/layout/MobileShell';
 export function Home() {
   const { createRoom, joinRoom, error, clearError } = useGame();
   const { isConnected } = useSocket();
-  const [view, setView] = useState<'home' | 'join'>('home');
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
 
-  // Check for room code in URL on mount
+  // Check for room code in URL on mount (invitation link / QR scan)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code && code.length === 4) {
       setRoomCode(code.toUpperCase());
-      setView('join');
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -103,48 +101,41 @@ export function Home() {
           />
         </div>
 
-        {view === 'home' ? (
-          <div className="flex gap-3">
-            <button
-              onClick={handleCreate}
-              disabled={!name.trim() || !isConnected}
-              className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
-            >
-              {'>'} Create
-            </button>
-            <button
-              onClick={() => setView('join')}
-              disabled={!isConnected}
-              className="flex-1 bg-transparent hover:bg-bg-hover border-2 border-primary disabled:opacity-40 disabled:cursor-not-allowed text-primary font-bold py-4 rounded-lg text-lg transition-all hover:shadow-[0_0_20px_rgba(0,240,255,0.3)] uppercase tracking-wider"
-            >
-              {'>'} Join
-            </button>
-          </div>
-        ) : (
+        {roomCode ? (
+          /* Arrived via invitation link / QR scan */
           <div className="space-y-3">
-            <input
-              type="text"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, 4))}
-              placeholder="XXXX"
-              maxLength={4}
-              className="w-full bg-bg-card border-2 border-secondary/50 rounded-lg px-4 py-3 text-2xl text-center font-mono tracking-[0.5em] text-primary placeholder:text-text-muted placeholder:tracking-normal focus:outline-none focus:border-secondary transition-all"
-              style={{ textShadow: '0 0 10px rgba(0, 240, 255, 0.5)' }}
-            />
+            <div className="bg-bg-card border-2 border-secondary/50 rounded-lg px-4 py-3 text-center">
+              <div className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Joining Room</div>
+              <div
+                className="text-2xl font-mono tracking-[0.5em] text-primary"
+                style={{ textShadow: '0 0 10px rgba(0, 240, 255, 0.5)' }}
+              >
+                {roomCode}
+              </div>
+            </div>
             <button
               onClick={handleJoin}
-              disabled={!name.trim() || roomCode.length !== 4 || !isConnected}
+              disabled={!name.trim() || !isConnected}
               className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
             >
               {'>'} Join
             </button>
             <button
-              onClick={() => { setView('home'); setRoomCode(''); clearError(); }}
+              onClick={() => { setRoomCode(''); clearError(); }}
               className="w-full text-text-muted hover:text-primary py-2 text-sm transition-colors uppercase tracking-wide"
             >
               {'<'} Back
             </button>
           </div>
+        ) : (
+          /* Default: only allow creating a room */
+          <button
+            onClick={handleCreate}
+            disabled={!name.trim() || !isConnected}
+            className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
+          >
+            {'>'} Create
+          </button>
         )}
       </div>
 
