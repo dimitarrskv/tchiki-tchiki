@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { useSocket } from '../context/SocketContext';
 import { MobileShell } from '../components/layout/MobileShell';
+import { unlockAudio } from '../lib/audio';
 
 export function Home() {
   const { createRoom, joinRoom, error, clearError } = useGame();
@@ -19,12 +20,6 @@ export function Home() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
-
-  // Unlock audio playback on mobile browsers (requires user gesture)
-  const unlockAudio = () => {
-    const silence = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-    silence.play().catch(() => {});
-  };
 
   const handleCreate = () => {
     if (!name.trim()) return;

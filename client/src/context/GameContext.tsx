@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useSocket } from './SocketContext';
 import { saveSession, clearSession } from '../lib/sessionStorage';
+import { playPreview, stopPreview, seekPreview } from '../lib/audio';
 import type { RoomState, GamePhase, PairResult, TrackMeta } from 'shared/src/types';
 
 interface GameContextValue {
@@ -51,7 +52,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [pairResults, setPairResults] = useState<PairResult | null>(null);
   const [currentTrackUri, setCurrentTrackUri] = useState<string | null>(null);
   const [currentTrackMeta, setCurrentTrackMeta] = useState<TrackMeta | null>(null);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const isHost = room?.hostId === playerId;
 
@@ -156,7 +156,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     });
 
-    // Music playback via HTML5 Audio
+    // Music playback via shared Audio element (pre-unlocked for mobile)
     socket.on('game:play', async ({ trackUri, serverTimestamp, previewUrl, trackName, trackArtist, trackArt }) => {
       console.log('Received play command:', { trackUri, previewUrl: !!previewUrl });
 
@@ -168,19 +168,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
           setError('Preview URL unavailable for this track');
           return;
         }
-        if (previewAudioRef.current) {
-          previewAudioRef.current.pause();
-          previewAudioRef.current = null;
-        }
-        const audio = new Audio(previewUrl);
-        audio.volume = 0.8;
-        previewAudioRef.current = audio;
-        await audio.play();
+        stopPreview();
+        await playPreview(previewUrl);
 
         // Sync position if needed
         const elapsedMs = Date.now() - serverTimestamp;
         if (elapsedMs > 500) {
-          audio.currentTime = elapsedMs / 1000;
+          seekPreview(elapsedMs / 1000);
         }
       } catch (err: any) {
         console.error('Failed to play track:', err);
@@ -192,10 +186,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       console.log('Stopping music');
       setCurrentTrackUri(null);
       setCurrentTrackMeta(null);
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-        previewAudioRef.current = null;
-      }
+      stopPreview();
     });
 
     socket.on('game:pairResults', (results: PairResult) => {
