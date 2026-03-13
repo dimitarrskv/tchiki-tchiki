@@ -59,12 +59,16 @@ export class MusicPairs extends BaseGame {
       }, (3 - i) * 1000);
     }
 
-    // Fetch preview data during countdown
-    this.fetchPreviewData(trackData).catch(err => {
+    // Fetch preview data during countdown, then start playing
+    // Wait for BOTH the 3s countdown AND the fetch to complete
+    const fetchPromise = this.fetchPreviewData(trackData).catch(err => {
       console.error('Failed to fetch preview data:', err.message);
     });
+    const countdownPromise = new Promise(resolve => setTimeout(resolve, 3000));
 
-    this.scheduleTimeout(() => this.startPlaying(), 3000);
+    Promise.all([fetchPromise, countdownPromise]).then(() => {
+      this.startPlaying();
+    });
   }
 
   private async fetchPreviewData(trackData: TrackData[]): Promise<void> {
