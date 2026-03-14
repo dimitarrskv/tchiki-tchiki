@@ -37,12 +37,14 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
 
   const colors = getColor();
   const isLowTime = seconds <= 10 && seconds > 0;
+  const isCritical = seconds <= 5 && seconds > 0;
 
   return (
     <div
       className="relative flex items-center justify-center"
       style={{
-        animation: isLowTime ? 'timerPulse 0.5s ease-in-out infinite' : 'none'
+        animation: isLowTime ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
+        ['--timer-scale' as string]: isCritical ? '1.08' : '1.05',
       }}
     >
       <svg className="transform -rotate-90" width="180" height="180">
@@ -95,7 +97,7 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
             transform: scale(1);
           }
           50% {
-            transform: scale(1.05);
+            transform: scale(var(--timer-scale, 1.05));
           }
         }
       `}</style>

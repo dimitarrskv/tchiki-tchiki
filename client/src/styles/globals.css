@@ -33,13 +33,12 @@ html {
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'VT323', monospace;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6, .font-display {
-  font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-weight: 700;
+  font-family: 'VT323', monospace;
   letter-spacing: 0.05em;
 }
 

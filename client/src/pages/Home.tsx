@@ -96,7 +96,7 @@ export function Home() {
           {isConnected && (
             <div className="mt-3 pt-3 border-t border-success/20 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
-              <span className="text-success text-sm uppercase tracking-wider">Ready for battle</span>
+              <span className="text-success text-sm uppercase tracking-wider">Systems online</span>
             </div>
           )}
         </div>
@@ -154,7 +154,7 @@ export function Home() {
 
       {/* Footer */}
       <div className="text-center text-xs text-text-muted py-4 uppercase tracking-widest">
-        [ 30s Preview Clips - No Account Needed ]
+        [ 30s clips // no account required ]
       </div>
     </MobileShell>
   );

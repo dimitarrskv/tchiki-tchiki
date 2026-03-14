@@ -159,7 +159,7 @@ export function Playing() {
               key={countdown}
               className="mb-8"
               style={{
-                animation: 'countdownPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                animation: 'countdownPop 1s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
               }}
             >
               <div
@@ -188,7 +188,7 @@ export function Playing() {
                 textShadow: '0 0 20px rgba(0, 240, 255, 0.6)'
               }}
             >
-              Get Ready!
+              Get Ready
             </div>
 
             <p
@@ -197,7 +197,7 @@ export function Playing() {
                 animation: 'fadeInUp 0.6s ease-out'
               }}
             >
-              {'>'} Put your headphones on...
+              {'>'} headphones on
             </p>
 
             <div
@@ -207,7 +207,7 @@ export function Playing() {
               }}
             >
               <div className="text-primary mb-2 font-bold">// OBJECTIVE</div>
-              <div>Find the person hearing the same song as you!</div>
+              <div>Find who's hearing the same track</div>
             </div>
 
             <style>{`
@@ -215,13 +215,16 @@ export function Playing() {
                 0% {
                   transform: scale(0.3);
                   opacity: 0;
+                  filter: blur(4px);
                 }
                 50% {
-                  transform: scale(1.15);
+                  transform: scale(1.1);
+                  filter: blur(0);
                 }
                 100% {
                   transform: scale(1);
                   opacity: 1;
+                  filter: blur(0);
                 }
               }
 
@@ -229,10 +232,12 @@ export function Playing() {
                 from {
                   opacity: 0;
                   transform: translateY(20px);
+                  filter: blur(4px);
                 }
                 to {
                   opacity: 1;
                   transform: translateY(0);
+                  filter: blur(0);
                 }
               }
             `}</style>
@@ -249,7 +254,7 @@ export function Playing() {
             <div
               className="text-4xl font-bold mb-4 text-primary relative z-10"
               style={{
-                animation: 'slideInFromTop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                animation: 'slideInFromTop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 textShadow: '0 0 20px var(--color-primary)',
               }}
             >
@@ -263,7 +268,7 @@ export function Playing() {
                   animation: 'fadeIn 0.8s ease-out'
                 }}
               >
-                Who is hearing the same song as you?
+                Who has the same track?
               </p>
             </div>
 
@@ -300,7 +305,7 @@ export function Playing() {
             {/* Partner selection */}
             <div className="space-y-2 relative z-10">
               <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
-                {'>'} Select your match:
+                {'>'} pick your match:
               </div>
               {room.players
                 .filter(p => p.id !== playerId)
@@ -327,7 +332,7 @@ export function Playing() {
                 ))}
               {selectedPartner && (
                 <div className="mt-2 text-center text-success text-xs font-mono">
-                  Match selected - You can change it before time runs out
+                  locked in — change anytime
                 </div>
               )}
             </div>
@@ -348,9 +353,9 @@ export function Playing() {
               </div>
               <p className="text-text-muted font-mono text-sm">
                 {room.phase === GamePhase.REVEAL
-                  ? 'Here are the pairs...'
+                  ? 'pairs revealed'
                   : room.roundNumber >= room.roundLimit
-                    ? `Final Round — Results incoming...`
+                    ? `final round — results incoming`
                     : `Round ${room.roundNumber} / ${room.roundLimit}${nextRoundIn != null && nextRoundIn > 0 ? ` — Next in ${nextRoundIn}s...` : ' — Starting...'}`}
               </p>
             </div>
@@ -362,7 +367,7 @@ export function Playing() {
                   transform: scale(0.5) translateY(-50px);
                 }
                 60% {
-                  transform: scale(1.1) translateY(0);
+                  transform: scale(1.05) translateY(0);
                 }
                 100% {
                   opacity: 1;
@@ -419,7 +424,7 @@ export function Playing() {
                           : 'bg-bg-card border-primary/30'
                       }`}
                       style={{
-                        animation: `slideInLeft 0.5s ease-out ${index * 0.1}s both`
+                        animation: `slideInLeft 0.5s ease-out ${index * 0.15}s both`
                       }}
                     >
                       <div className="flex flex-col gap-2">
@@ -564,7 +569,7 @@ export function Playing() {
                             : 'bg-bg-card border-primary/30'
                         }`}
                         style={{
-                          animation: `slideInLeft 0.5s ease-out ${index * 0.1}s both`
+                          animation: `slideInLeft 0.5s ease-out ${index * 0.15}s both`
                         }}
                       >
                         <div className="flex items-center justify-between">

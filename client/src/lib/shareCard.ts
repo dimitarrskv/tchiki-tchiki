@@ -151,13 +151,13 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
     'TCHIKI-TCHIKI',
     W / 2,
     240,
-    '700 72px Orbitron',
+    '72px VT323',
     COLORS.primary,
     40,
   );
 
   // Subtitle
-  ctx.font = '500 28px Rajdhani';
+  ctx.font = '28px VT323';
   ctx.fillStyle = COLORS.textMuted;
   ctx.textAlign = 'center';
   ctx.fillText('MUSIC PAIRS', W / 2, 300);
@@ -175,7 +175,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
   ctx.restore();
 
   // 4. Player name
-  ctx.font = '600 36px Rajdhani';
+  ctx.font = '36px VT323';
   ctx.fillStyle = COLORS.textMuted;
   ctx.textAlign = 'center';
   ctx.fillText('> ' + data.playerName.toUpperCase(), W / 2, 440);
@@ -186,7 +186,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
   drawCard(ctx, 80, rankCardY, W - 160, rankCardH, COLORS.primary + '60');
 
   // "YOUR RANKING" label
-  ctx.font = '500 24px Rajdhani';
+  ctx.font = '24px VT323';
   ctx.fillStyle = COLORS.textMuted;
   ctx.textAlign = 'center';
   ctx.fillText('YOUR RANKING', W / 2, rankCardY + 60);
@@ -199,13 +199,13 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
     rankText,
     W / 2,
     rankCardY + 200,
-    '800 160px Orbitron',
+    '160px VT323',
     rankColor,
     data.isWinner ? 50 : 25,
   );
 
   // Rank suffix (out of total)
-  ctx.font = '500 28px Rajdhani';
+  ctx.font = '28px VT323';
   ctx.fillStyle = COLORS.textMuted;
   ctx.textAlign = 'center';
   ctx.fillText(
@@ -239,7 +239,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
       'WINNER',
       W / 2,
       nextY + badgeH / 2,
-      '700 36px Orbitron',
+      '36px VT323',
       COLORS.secondary,
       30,
     );
@@ -253,7 +253,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
   drawCard(ctx, 80, statsCardY, W - 160, statsCardH, COLORS.primary + '40');
 
   // Stats header
-  ctx.font = '500 22px Rajdhani';
+  ctx.font = '22px VT323';
   ctx.fillStyle = COLORS.textMuted;
   ctx.textAlign = 'left';
   ctx.fillText('> GAME STATS', 130, statsCardY + 50);
@@ -276,12 +276,12 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
   stats.forEach(([label, value], i) => {
     const rowY = statsCardY + 115 + i * 60;
 
-    ctx.font = '500 30px Rajdhani';
+    ctx.font = '30px VT323';
     ctx.fillStyle = COLORS.textMuted;
     ctx.textAlign = 'left';
     ctx.fillText(label, 130, rowY);
 
-    ctx.font = '700 30px Orbitron';
+    ctx.font = '30px VT323';
     ctx.fillStyle = COLORS.primary;
     ctx.textAlign = 'right';
     ctx.fillText(value, W - 130, rowY);
@@ -303,7 +303,7 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
   ctx.restore();
 
   // "Play with me!" text
-  ctx.font = '600 40px Rajdhani';
+  ctx.font = '40px VT323';
   ctx.fillStyle = COLORS.text;
   ctx.textAlign = 'center';
   ctx.fillText('Play with me!', W / 2, ctaY + 70);
@@ -314,13 +314,13 @@ export async function generateShareCard(data: ShareCardData): Promise<Blob> {
     data.appUrl,
     W / 2,
     ctaY + 140,
-    '500 32px Orbitron',
+    '32px VT323',
     COLORS.accent,
     20,
   );
 
   // Small tagline
-  ctx.font = '400 22px Rajdhani';
+  ctx.font = '22px VT323';
   ctx.fillStyle = COLORS.textMuted;
   ctx.textAlign = 'center';
   ctx.fillText(

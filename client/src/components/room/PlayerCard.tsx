@@ -64,10 +64,10 @@ export function PlayerCard({ player, isMe }: PlayerCardProps) {
         </div>
         <div className="text-xs text-text-muted font-mono">
           {!player.isConnected
-            ? '// Reconnecting...'
+            ? '// reconnecting...'
             : player.isReady
-            ? '> Stream active'
-            : '> Linking stream...'}
+            ? '> online'
+            : '> connecting...'}
         </div>
       </div>
       <div

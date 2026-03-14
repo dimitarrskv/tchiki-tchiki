@@ -8,8 +8,7 @@
   gap: 8px;
   padding: 12px 20px;
   border-radius: 8px;
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 500;
+  font-family: 'VT323', monospace;
   font-size: 14px;
   z-index: 9999;
   backdrop-filter: blur(10px);

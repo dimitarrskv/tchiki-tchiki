@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tchiki-Tchiki — Console UI Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050505;
+    color: #ccc;
+    font-family: 'Share Tech Mono', monospace;
+    padding: 30px 16px 60px;
+    font-size: 13px;
+  }
+  h1.page-title {
+    text-align: center; font-family: 'VT323', monospace;
+    font-size: 22px; color: #1ed760; letter-spacing: 4px;
+    text-shadow: 0 0 12px rgba(30,215,96,0.5);
+    margin-bottom: 4px;
+  }
+  p.page-sub {
+    text-align: center; font-size: 11px; color: #555; margin-bottom: 40px;
+    letter-spacing: 1px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 40px; max-width: 1800px; margin: 0 auto;
+  }
+
+  .mockup-label {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: #1ed760; margin-bottom: 8px; font-weight: 700;
+    text-shadow: 0 0 6px rgba(30,215,96,0.3);
+  }
+  .mockup-desc {
+    font-size: 10px; color: #444; margin-bottom: 14px; line-height: 1.5;
+  }
+
+  /* ===== PHONE FRAME ===== */
+  .phone {
+    width: 370px; height: 740px;
+    border-radius: 36px; overflow: hidden;
+    margin: 0 auto;
+    border: 3px solid #1a1a1a;
+    background: #000;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 1px rgba(30,215,96,0.1);
+  }
+
+  /* ===== TERMINAL WINDOW ===== */
+  .terminal {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    background: #0a0e14;
+    position: relative;
+  }
+
+  /* CRT scanline overlay */
+  .terminal::before {
+    content: ''; position: absolute; inset: 0; z-index: 10;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(30,215,96,0.02) 0px, rgba(30,215,96,0.02) 1px,
+      transparent 1px, transparent 3px
+    );
+    pointer-events: none;
+  }
+  /* Subtle vignette */
+  .terminal::after {
+    content: ''; position: absolute; inset: 0; z-index: 10;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+  }
+
+  /* ===== TITLE BAR ===== */
+  .title-bar {
+    display: flex; align-items: center;
+    padding: 10px 14px 8px;
+    background: #0d1117;
+    border-bottom: 1px solid #1a1f2a;
+    position: relative; z-index: 5;
+    flex-shrink: 0;
+  }
+  .title-bar .dots {
+    display: flex; gap: 5px;
+  }
+  .title-bar .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #ffbd2e; }
+  .dot-g { background: #28c840; }
+  .title-bar .title {
+    flex: 1; text-align: center;
+    font-size: 10px; color: #555; letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .title-bar .title-right {
+    width: 46px; /* balance the dots */
+  }
+
+  /* ===== TERMINAL BODY ===== */
+  .term-body {
+    flex: 1; overflow-y: auto;
+    padding: 14px 14px 8px;
+    position: relative; z-index: 5;
+    display: flex; flex-direction: column;
+  }
+  .term-body .spacer { flex: 1; }
+
+  /* ===== STATUS BAR (tmux-style) ===== */
+  .status-bar {
+    display: flex; align-items: center;
+    padding: 6px 12px;
+    background: #1ed760;
+    color: #0a0e14;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative; z-index: 5;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+  .status-bar .sb-section {
+    padding: 0 8px;
+  }
+  .status-bar .sb-sep {
+    color: rgba(10,14,20,0.3);
+  }
+  .status-bar .sb-right {
+    margin-left: auto;
+  }
+
+  .status-bar.sb-pink {
+    background: #ff006e;
+    color: #fff;
+  }
+  .status-bar.sb-amber {
+    background: #ffbe0b;
+    color: #0a0e14;
+  }
+
+  /* ===== TERMINAL TEXT ELEMENTS ===== */
+  .line {
+    line-height: 1.7;
+    font-size: 13px;
+    color: #8892b0;
+  }
+  .line-green { color: #1ed760; }
+  .line-cyan { color: #00f0ff; }
+  .line-pink { color: #ff006e; }
+  .line-amber { color: #ffbe0b; }
+  .line-white { color: #e0f7ff; }
+  .line-dim { color: #3a4255; }
+  .line-purple { color: #9d4edd; }
+
+  .prompt { color: #1ed760; }
+  .prompt-pink { color: #ff006e; }
+  .cmd { color: #e0f7ff; }
+  .flag { color: #ffbe0b; }
+  .arg { color: #00f0ff; }
+  .comment { color: #3a4255; font-style: italic; }
+
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: #1ed760;
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+  }
+  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+
+  .glow-green {
+    text-shadow: 0 0 8px rgba(30,215,96,0.5), 0 0 20px rgba(30,215,96,0.2);
+  }
+  .glow-pink {
+    text-shadow: 0 0 8px rgba(255,0,110,0.5), 0 0 20px rgba(255,0,110,0.2);
+  }
+  .glow-cyan {
+    text-shadow: 0 0 8px rgba(0,240,255,0.5), 0 0 20px rgba(0,240,255,0.2);
+  }
+
+  /* ===== ASCII LOGO ===== */
+  .ascii-logo {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    line-height: 1.1;
+    color: #1ed760;
+    text-shadow: 0 0 10px rgba(30,215,96,0.6), 0 0 30px rgba(30,215,96,0.2);
+    text-align: center;
+    margin: 8px 0;
+    white-space: pre;
+  }
+
+  /* ===== DIVIDERS ===== */
+  .divider {
+    border: none;
+    border-top: 1px solid #1a1f2a;
+    margin: 8px 0;
+  }
+  .divider-dashed {
+    border: none;
+    color: #1a1f2a;
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin: 6px 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* ===== COMMAND BUTTONS (look like terminal commands) ===== */
+  .cmd-btn {
+    display: block; width: 100%;
+    background: transparent;
+    border: 1px solid #1a1f2a;
+    color: #e0f7ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .cmd-btn:hover {
+    background: rgba(30,215,96,0.08);
+    border-color: #1ed760;
+    color: #1ed760;
+  }
+  .cmd-btn:active {
+    background: rgba(30,215,96,0.15);
+  }
+  .cmd-btn .btn-prompt { color: #1ed760; margin-right: 6px; }
+  .cmd-btn .btn-flag { color: #ffbe0b; }
+
+  .cmd-btn-primary {
+    border-color: rgba(30,215,96,0.3);
+    background: rgba(30,215,96,0.06);
+    color: #1ed760;
+  }
+  .cmd-btn-primary:hover {
+    background: rgba(30,215,96,0.15);
+    border-color: #1ed760;
+    box-shadow: 0 0 15px rgba(30,215,96,0.15);
+  }
+
+  .cmd-btn-pink {
+    border-color: rgba(255,0,110,0.2);
+    color: #ff006e;
+  }
+  .cmd-btn-pink:hover {
+    background: rgba(255,0,110,0.08);
+    border-color: #ff006e;
+    color: #ff006e;
+  }
+
+  /* ===== INPUT ===== */
+  .term-input-row {
+    display: flex; align-items: center;
+    border: 1px solid #1a1f2a;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    background: rgba(15,20,25,0.6);
+  }
+  .term-input-row .input-prompt {
+    color: #1ed760; margin-right: 8px; flex-shrink: 0;
+    font-size: 13px;
+  }
+  .term-input-row input {
+    flex: 1; background: none; border: none; outline: none;
+    color: #e0f7ff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  .term-input-row input::placeholder { color: #3a4255; }
+
+  /* ===== ROOM CODE BOX ===== */
+  .room-code-box {
+    text-align: center;
+    padding: 12px;
+    border: 1px solid rgba(30,215,96,0.2);
+    background: rgba(30,215,96,0.04);
+    margin-bottom: 10px;
+  }
+  .room-code-label {
+    font-size: 9px; letter-spacing: 3px;
+    text-transform: uppercase; color: #8892b0;
+    margin-bottom: 4px;
+  }
+  .room-code-value {
+    font-family: 'VT323', monospace;
+    font-size: 36px; letter-spacing: 10px;
+    color: #1ed760;
+    text-shadow: 0 0 12px rgba(30,215,96,0.6), 0 0 30px rgba(30,215,96,0.2);
+  }
+
+  /* ===== PLAYER LIST ===== */
+  .player-row {
+    display: flex; align-items: center;
+    padding: 6px 0;
+    font-size: 12px;
+    gap: 8px;
+  }
+  .player-row .p-idx { color: #3a4255; width: 18px; text-align: right; }
+  .player-row .p-sym { width: 14px; text-align: center; }
+  .player-row .p-name { color: #e0f7ff; flex: 1; text-transform: uppercase; letter-spacing: 1px; }
+  .player-row .p-tag { letter-spacing: 1px; font-size: 10px; }
+  .player-row .p-status {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #1ed760;
+    box-shadow: 0 0 6px rgba(30,215,96,0.5);
+  }
+
+  /* ===== TABLE (for results) ===== */
+  .term-table {
+    width: 100%;
+    font-size: 11px;
+    border-collapse: collapse;
+    margin: 6px 0;
+  }
+  .term-table th {
+    text-align: left;
+    color: #3a4255;
+    font-weight: 400;
+    padding: 4px 6px 4px 0;
+    border-bottom: 1px solid #1a1f2a;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 9px;
+  }
+  .term-table td {
+    padding: 6px 6px 6px 0;
+    color: #8892b0;
+    border-bottom: 1px solid #0f1419;
+  }
+
+  /* ===== PROGRESS BAR (ASCII) ===== */
+  .progress-bar {
+    font-size: 12px;
+    color: #3a4255;
+    margin: 4px 0;
+    letter-spacing: 1px;
+  }
+  .progress-fill { color: #1ed760; }
+  .progress-empty { color: #1a1f2a; }
+
+  /* ===== AUDIO VISUALIZER (ASCII) ===== */
+  .audio-viz {
+    text-align: center;
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: #1ed760;
+    text-shadow: 0 0 10px rgba(30,215,96,0.5);
+    margin: 6px 0;
+    animation: viz-pulse 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes viz-pulse {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+
+  /* ===== COUNTDOWN ===== */
+  .countdown-big {
+    font-family: 'VT323', monospace;
+    font-size: 80px;
+    text-align: center;
+    line-height: 1;
+    margin: 10px 0;
+  }
+  .countdown-big.c-3 { color: #00f0ff; text-shadow: 0 0 30px rgba(0,240,255,0.5); }
+  .countdown-big.c-2 { color: #ffbe0b; text-shadow: 0 0 30px rgba(255,190,11,0.5); }
+  .countdown-big.c-1 { color: #ff006e; text-shadow: 0 0 30px rgba(255,0,110,0.5); }
+
+  /* ===== PAIR RESULT BLOCK ===== */
+  .pair-block {
+    border: 1px solid #1a1f2a;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    background: rgba(15,20,25,0.4);
+  }
+  .pair-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 6px;
+  }
+  .pair-names { color: #e0f7ff; font-size: 12px; letter-spacing: 0.5px; }
+  .pair-badge {
+    font-size: 9px; letter-spacing: 1px;
+    padding: 2px 6px;
+    font-weight: 700;
+  }
+  .badge-match { color: #1ed760; border: 1px solid rgba(30,215,96,0.3); background: rgba(30,215,96,0.08); }
+  .badge-partial { color: #ffbe0b; border: 1px solid rgba(255,190,11,0.3); background: rgba(255,190,11,0.08); }
+  .badge-miss { color: #ff006e; border: 1px solid rgba(255,0,110,0.3); background: rgba(255,0,110,0.08); }
+  .pair-song {
+    font-size: 10px; color: #8892b0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pair-song .song-icon { color: #3a4255; }
+
+  /* ===== PLAYER SELECT BUTTONS ===== */
+  .select-btn {
+    display: flex; align-items: center;
+    width: 100%;
+    background: transparent;
+    border: 1px solid #1a1f2a;
+    color: #8892b0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    margin-bottom: 3px;
+    transition: all 0.15s;
+    gap: 8px;
+  }
+  .select-btn:hover {
+    border-color: rgba(30,215,96,0.3);
+    color: #e0f7ff;
+    background: rgba(30,215,96,0.04);
+  }
+  .select-btn.selected {
+    border-color: #1ed760;
+    color: #1ed760;
+    background: rgba(30,215,96,0.08);
+    box-shadow: 0 0 10px rgba(30,215,96,0.1);
+  }
+  .select-btn .sel-key {
+    color: #3a4255;
+    width: 20px;
+    font-size: 10px;
+  }
+  .select-btn .sel-sym { width: 14px; text-align: center; }
+  .select-btn .sel-name {
+    flex: 1; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .select-btn .sel-check { color: #1ed760; margin-left: auto; }
+
+  /* ===== FINAL STANDINGS ===== */
+  .standing-row {
+    display: flex; align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 3px;
+    gap: 10px;
+    font-size: 12px;
+    border: 1px solid #1a1f2a;
+    background: rgba(15,20,25,0.3);
+  }
+  .standing-row.winner {
+    border-color: rgba(30,215,96,0.3);
+    background: rgba(30,215,96,0.06);
+  }
+  .standing-rank {
+    width: 20px; text-align: center;
+    color: #3a4255;
+    font-size: 11px;
+  }
+  .standing-row.winner .standing-rank { color: #1ed760; }
+  .standing-name {
+    flex: 1; color: #e0f7ff;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .standing-score {
+    color: #1ed760; font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .standing-bar {
+    width: 60px; height: 4px;
+    background: #1a1f2a;
+    position: relative;
+    overflow: hidden;
+  }
+  .standing-bar-fill {
+    height: 100%;
+    background: #1ed760;
+    box-shadow: 0 0 6px rgba(30,215,96,0.4);
+  }
+
+  /* ===== TABS (for multi-view mockups) ===== */
+  .phone-tabs {
+    display: flex;
+    background: #0d1117;
+    position: relative; z-index: 5;
+    border-bottom: 1px solid #1a1f2a;
+  }
+  .phone-tab {
+    flex: 1; padding: 7px 6px;
+    text-align: center;
+    font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: #3a4255;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .phone-tab.active {
+    color: #1ed760;
+    border-bottom-color: #1ed760;
+  }
+  .phone-tab:hover { color: #8892b0; }
+  .phone-view { display: none; }
+  .phone-view.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+  /* ===== LOG FEED (for lobby) ===== */
+  .log-entry {
+    font-size: 11px;
+    line-height: 1.7;
+    display: flex;
+    gap: 8px;
+  }
+  .log-time { color: #3a4255; flex-shrink: 0; }
+  .log-msg { color: #8892b0; }
+
+  /* ===== TIMER RING (ASCII circle) ===== */
+  .timer-ascii {
+    text-align: center;
+    font-family: 'VT323', monospace;
+    font-size: 48px;
+    color: #1ed760;
+    text-shadow: 0 0 20px rgba(30,215,96,0.5);
+    line-height: 1;
+    margin: 4px 0;
+  }
+  .timer-label {
+    text-align: center;
+    font-size: 10px;
+    color: #3a4255;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .mt-2 { margin-top: 8px; }
+  .mt-3 { margin-top: 12px; }
+  .mb-1 { margin-bottom: 4px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-3 { margin-bottom: 12px; }
+  .text-center { text-align: center; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">CONSOLE UI CONCEPT</h1>
+<p class="page-sub">Tchiki-Tchiki reimagined as a terminal. Every screen = console output. Buttons = commands.</p>
+
+<div class="grid">
+
+<!-- ==================== 1. BOOT / HOME ==================== -->
+<div>
+  <div class="mockup-label">01 — Boot / Home</div>
+  <div class="mockup-desc">The app opens like a terminal booting up. Name entry is a command prompt. Create/Join are executable commands.</div>
+  <div class="phone">
+    <div class="terminal">
+      <div class="title-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="title">tchiki-tchiki v1.0</div>
+        <div class="title-right"></div>
+      </div>
+      <div class="term-body">
+
+        <div class="line line-dim">GNU Tchiki-Tchiki 1.0.0</div>
+        <div class="line line-dim">Copyright (c) 2025 tchiki-tchiki</div>
+        <div class="line line-dim mb-2">Type 'help' for available commands.</div>
+
+        <div class="ascii-logo">▀█▀ █▀▀ █ █ █ █▄▀ █
+ █  █▄▄ █▀█ █ █ █ █
+ ▀  ▀▀▀ ▀ ▀ ▀ ▀ ▀ ▀
+▀█▀ █▀▀ █ █ █ █▄▀ █
+ █  █▄▄ █▀█ █ █ █ █
+ ▀  ▀▀▀ ▀ ▀ ▀ ▀ ▀ ▀</div>
+
+        <div class="divider"></div>
+
+        <div class="line"><span class="prompt">$</span> <span class="cmd">system</span> <span class="flag">--status</span></div>
+        <div class="line">  <span class="line-green">&#x2713;</span> socket: <span class="line-green">connected</span></div>
+        <div class="line">  <span class="line-green">&#x2713;</span> audio: <span class="line-green">ready</span></div>
+        <div class="line mb-2">  <span class="line-green">&#x2713;</span> latency: <span class="line-green">23ms</span></div>
+
+        <div class="line mb-1"><span class="prompt">$</span> <span class="cmd">set</span> <span class="flag">--name</span></div>
+        <div class="term-input-row">
+          <span class="input-prompt">&#x276F;</span>
+          <input type="text" placeholder="enter your name..." disabled value="DIMITAR">
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="line mb-1 line-dim">// available commands</div>
+        <button class="cmd-btn cmd-btn-primary">
+          <span class="btn-prompt">$</span> create <span class="btn-flag">--room</span>
+        </button>
+        <button class="cmd-btn cmd-btn-pink">
+          <span class="btn-prompt" style="color:#ff006e;">$</span> join <span class="btn-flag">--code</span> <span class="arg">[XXXX]</span>
+        </button>
+
+      </div>
+      <div class="status-bar">
+        <span class="sb-section">READY</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">WS:OK</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">AUDIO:OK</span>
+        <span class="sb-right">v1.0.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 2. LOBBY ==================== -->
+<div>
+  <div class="mockup-label">02 — Lobby</div>
+  <div class="mockup-desc">Players joining shows as a live system log. Room code glows. Player list is a process table.</div>
+  <div class="phone">
+    <div class="terminal">
+      <div class="title-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="title">room session</div>
+        <div class="title-right"></div>
+      </div>
+      <div class="term-body">
+
+        <div class="room-code-box">
+          <div class="room-code-label">session id</div>
+          <div class="room-code-value">XK7M</div>
+        </div>
+
+        <div class="line"><span class="prompt">$</span> <span class="cmd">room</span> <span class="flag">--players</span></div>
+        <div class="divider"></div>
+
+        <div class="player-row">
+          <span class="p-idx">01</span>
+          <span class="p-sym line-cyan">&#x25C6;</span>
+          <span class="p-name">Dimitar</span>
+          <span class="p-tag line-pink">[HOST]</span>
+        </div>
+        <div class="player-row">
+          <span class="p-idx">02</span>
+          <span class="p-sym line-pink">&#x25C7;</span>
+          <span class="p-name">Alex</span>
+          <span class="p-tag line-green">[YOU]</span>
+        </div>
+        <div class="player-row">
+          <span class="p-idx">03</span>
+          <span class="p-sym line-purple">&#x25C8;</span>
+          <span class="p-name">Maria</span>
+          <span class="p-status"></span>
+        </div>
+        <div class="player-row">
+          <span class="p-idx">04</span>
+          <span class="p-sym line-amber">&#x25C9;</span>
+          <span class="p-name">Stefan</span>
+          <span class="p-status"></span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="line line-dim mb-1">// system log</div>
+        <div class="log-entry"><span class="log-time">14:32:01</span><span class="log-msg"><span class="line-green">+</span> Dimitar created room <span class="line-cyan">XK7M</span></span></div>
+        <div class="log-entry"><span class="log-time">14:32:15</span><span class="log-msg"><span class="line-green">+</span> Alex joined</span></div>
+        <div class="log-entry"><span class="log-time">14:32:28</span><span class="log-msg"><span class="line-green">+</span> Maria joined</span></div>
+        <div class="log-entry"><span class="log-time">14:32:41</span><span class="log-msg"><span class="line-green">+</span> Stefan joined</span></div>
+        <div class="log-entry"><span class="log-time">14:32:42</span><span class="log-msg">quorum reached <span class="line-green">[4/4]</span></span></div>
+
+        <div class="spacer"></div>
+
+        <div class="line mb-1"><span class="prompt">$</span> <span class="cmd">config</span> <span class="flag">--rounds</span> <span class="arg">5</span></div>
+
+        <button class="cmd-btn cmd-btn-primary mt-2">
+          <span class="btn-prompt">$</span> game <span class="btn-flag">--start</span>
+        </button>
+
+      </div>
+      <div class="status-bar">
+        <span class="sb-section">LOBBY</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">XK7M</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">4 ONLINE</span>
+        <span class="sb-right">5 ROUNDS</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 3. COUNTDOWN ==================== -->
+<div>
+  <div class="mockup-label">03 — Countdown</div>
+  <div class="mockup-desc">Round start feels like a process launching. Big number counts down. Color shifts cyan → amber → red.</div>
+  <div class="phone">
+    <div class="terminal">
+      <div class="title-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="title">round 1 / 5</div>
+        <div class="title-right"></div>
+      </div>
+      <div class="term-body" style="justify-content: center; align-items: center;">
+
+        <div class="line line-dim text-center mb-2" style="font-size:11px; letter-spacing:2px;">INITIALIZING ROUND</div>
+
+        <div class="line text-center mb-2">
+          <span class="prompt">$</span> <span class="cmd">round</span> <span class="flag">--start</span> <span class="arg">1</span>
+        </div>
+
+        <div class="progress-bar text-center mb-3">
+          <span class="progress-fill">[████████████</span><span class="progress-empty">████████]</span> 60%
+        </div>
+
+        <div class="countdown-big c-2">2</div>
+
+        <div class="line text-center mt-2 line-amber" style="font-size:14px; letter-spacing:3px;">
+          GET READY
+        </div>
+
+        <div class="line text-center mt-3 line-dim" style="font-size:11px;">
+          objective: find the person<br>hearing the same song as you
+        </div>
+
+      </div>
+      <div class="status-bar sb-amber">
+        <span class="sb-section">COUNTDOWN</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">ROUND 1/5</span>
+        <span class="sb-right">STARTING...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 4. PLAYING ==================== -->
+<div>
+  <div class="mockup-label">04 — Playing</div>
+  <div class="mockup-desc">Song plays with ASCII audio viz. Timer as countdown number. Player selection looks like numbered options in a CLI menu.</div>
+  <div class="phone">
+    <div class="terminal">
+      <div class="title-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="title">round 1 / 5 — active</div>
+        <div class="title-right"></div>
+      </div>
+      <div class="term-body">
+
+        <div class="line"><span class="prompt">$</span> <span class="cmd">audio</span> <span class="flag">--play</span></div>
+        <div class="audio-viz">▁ ▃ ▅ ▇ █ ▇ ▅ ▃ ▁ ▃ ▅ ▇ ▅ ▃</div>
+        <div class="line text-center line-dim" style="font-size:10px; letter-spacing:1px;">
+          &#x266B; now playing — find your match
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="timer-ascii">18</div>
+        <div class="timer-label">seconds remaining</div>
+
+        <div class="progress-bar text-center mb-2" style="font-size:11px;">
+          <span class="progress-fill">[████████████</span><span class="progress-empty">██████████████████]</span>
+        </div>
+
+        <div class="line mb-1"><span class="prompt">$</span> <span class="cmd">select</span> <span class="flag">--partner</span></div>
+
+        <button class="select-btn">
+          <span class="sel-key">[1]</span>
+          <span class="sel-sym line-cyan">&#x25C6;</span>
+          <span class="sel-name">Dimitar</span>
+        </button>
+        <button class="select-btn selected">
+          <span class="sel-key">[2]</span>
+          <span class="sel-sym line-purple">&#x25C8;</span>
+          <span class="sel-name">Maria</span>
+          <span class="sel-check">&#x2713; SELECTED</span>
+        </button>
+        <button class="select-btn">
+          <span class="sel-key">[3]</span>
+          <span class="sel-sym line-amber">&#x25C9;</span>
+          <span class="sel-name">Stefan</span>
+        </button>
+
+        <div class="spacer"></div>
+        <div class="line line-dim mt-2" style="font-size:10px;">
+          <span class="line-green">&#x2713;</span> match selected — you can change before time runs out
+        </div>
+
+      </div>
+      <div class="status-bar">
+        <span class="sb-section">PLAYING</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">R1/5</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">18s</span>
+        <span class="sb-right">PARTNER: MARIA</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 5. REVEAL ==================== -->
+<div>
+  <div class="mockup-label">05 — Reveal</div>
+  <div class="mockup-desc">Pairs revealed as structured output blocks. Match badges inline. Song info as metadata. Feels like query results.</div>
+  <div class="phone">
+    <div class="terminal">
+      <div class="title-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="title">round 1 — reveal</div>
+        <div class="title-right"></div>
+      </div>
+      <div class="term-body">
+
+        <div class="line mb-2"><span class="prompt">$</span> <span class="cmd">round</span> <span class="flag">--reveal</span></div>
+
+        <div class="pair-block">
+          <div class="pair-header">
+            <span class="pair-names"><span class="line-cyan">&#x25C6;</span> Dimitar <span class="line-dim">&amp;</span> <span class="line-purple">&#x25C8;</span> Maria</span>
+            <span class="pair-badge badge-match">MATCH</span>
+          </div>
+          <div class="pair-song">
+            <span class="song-icon">&#x266B;</span>
+            <span>Blinding Lights — The Weeknd</span>
+          </div>
+        </div>
+
+        <div class="pair-block">
+          <div class="pair-header">
+            <span class="pair-names"><span class="line-pink">&#x25C7;</span> Alex <span class="line-dim">&amp;</span> <span class="line-amber">&#x25C9;</span> Stefan</span>
+            <span class="pair-badge badge-miss">MISS</span>
+          </div>
+          <div class="pair-song">
+            <span class="song-icon">&#x266B;</span>
+            <span>Bohemian Rhapsody — Queen</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="line mb-1"><span class="prompt">$</span> <span class="cmd">scores</span> <span class="flag">--round</span> <span class="arg">1</span></div>
+
+        <table class="term-table">
+          <thead>
+            <tr><th>#</th><th>Player</th><th>Pts</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="line-green">1</td>
+              <td class="line-white">Dimitar</td>
+              <td class="line-green">+3</td>
+              <td class="line-green">3</td>
+            </tr>
+            <tr>
+              <td class="line-green">1</td>
+              <td class="line-white">Maria</td>
+              <td class="line-green">+3</td>
+              <td class="line-green">3</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td class="line-white">Alex</td>
+              <td class="line-pink">+0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td class="line-white">Stefan</td>
+              <td class="line-pink">+0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="spacer"></div>
+
+        <div class="line line-dim text-center mt-2" style="font-size:10px; letter-spacing:2px;">
+          next round in 5s...
+        </div>
+
+      </div>
+      <div class="status-bar">
+        <span class="sb-section">REVEAL</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">R1/5</span>
+        <span class="sb-sep">|</span>
+        <span class="sb-section">NEXT: 5s</span>
+        <span class="sb-right">+3 PTS</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 6. GAME OVER ==================== -->
+<div>
+  <div class="mockup-label">06 — Game Over</div>
+  <div class="mockup-desc">Final standings as a process report. Score bars show relative performance. Stats as key-value pairs. Actions as commands.</div>
+  <div class="phone">
+    <div class="terminal">
+      <div class="title-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="title">game complete</div>
+        <div class="title-right"></div>
+      </div>
+      <div class="term-body">
+
+        <div class="line"><span class="prompt">$</span> <span class="cmd">game</span> <span class="flag">--results</span></div>
+        <div class="line line-dim mb-2" style="font-size:10px;">session XK7M — 5 rounds completed</div>
+
+        <div class="line mb-1 line-dim" style="font-size:9px; letter-spacing:2px;">FINAL STANDINGS</div>
+        <div class="divider" style="margin-bottom:6px;"></div>
+
+        <div class="standing-row winner">
+          <span class="standing-rank">#1</span>
+          <span class="p-sym line-cyan glow-cyan">&#x25C6;</span>
+          <span class="standing-name glow-green">Dimitar</span>
+          <div class="standing-bar"><div class="standing-bar-fill" style="width:100%"></div></div>
+          <span class="standing-score glow-green">12</span>
+        </div>
+        <div class="standing-row">
+          <span class="standing-rank">#2</span>
+          <span class="p-sym line-purple">&#x25C8;</span>
+          <span class="standing-name">Maria</span>
+          <div class="standing-bar"><div class="standing-bar-fill" style="width:75%"></div></div>
+          <span class="standing-score">9</span>
+        </div>
+        <div class="standing-row">
+          <span class="standing-rank">#3</span>
+          <span class="p-sym line-pink">&#x25C7;</span>
+          <span class="standing-name">Alex</span>
+          <div class="standing-bar"><div class="standing-bar-fill" style="width:50%"></div></div>
+          <span class="standing-score">6</span>
+        </div>
+        <div class="standing-row">
+          <span class="standing-rank">#4</span>
+          <span class="p-sym line-amber">&#x25C9;</span>
+          <span class="standing-name">Stefan</span>
+          <div class="standing-bar"><div class="standing-bar-fill" style="width:25%"></div></div>
+          <span class="standing-score">3</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="line mb-1 line-dim" style="font-size:9px; letter-spacing:2px;">GAME STATS</div>
+        <div class="line" style="font-size:11px;">  rounds    <span class="line-white">5</span></div>
+        <div class="line" style="font-size:11px;">  players   <span class="line-white">4</span></div>
+        <div class="line" style="font-size:11px;">  total pts <span class="line-green">30</span></div>
+        <div class="line mb-2" style="font-size:11px;">  duration  <span class="line-white">4m 12s</span></div>
+
+        <div class="spacer"></div>
+
+        <button class="cmd-btn cmd-btn-primary">
+          <span class="btn-prompt">$</span> game <span class="btn-flag">--restart</span>
+        </button>
+        <button class="cmd-btn cmd-btn-pink">
+          <span class="btn-prompt" style="color:#ff006e;">$</span> room <span class="btn-flag">--leave</span>
+        </button>
+
+      </div>
+      <div class="status-bar sb-pink">
+        <span class="sb-section">GAME OVER</span>
+        <span class="sb-sep" style="color:rgba(255,255,255,0.3);">|</span>
+        <span class="sb-section">WINNER: DIMITAR</span>
+        <span class="sb-right">12 PTS</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+</body>
+</html>
