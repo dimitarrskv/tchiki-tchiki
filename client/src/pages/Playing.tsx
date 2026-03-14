@@ -184,10 +184,10 @@ export function Playing() {
                   'text-red-400'
                 }`}
                 style={{
-                  textShadow: `0 0 40px ${
-                    countdown === 3 ? 'rgba(0, 240, 255, 0.9)' :
-                    countdown === 2 ? 'rgba(255, 193, 7, 0.9)' :
-                    'rgba(255, 87, 87, 0.9)'
+                  textShadow: `0 0 20px ${
+                    countdown === 3 ? 'rgba(0, 240, 255, 0.5)' :
+                    countdown === 2 ? 'rgba(255, 193, 7, 0.5)' :
+                    'rgba(255, 87, 87, 0.5)'
                   }`,
                   WebkitTextStroke: '2px rgba(0, 0, 0, 0.3)',
                 }}
@@ -200,7 +200,7 @@ export function Playing() {
               className="text-3xl font-bold mb-4 text-primary"
               style={{
                 animation: 'fadeInUp 0.5s ease-out',
-                textShadow: '0 0 20px rgba(0, 240, 255, 0.6)'
+                textShadow: '0 0 10px rgba(0, 240, 255, 0.4)'
               }}
             >
               Get Ready
@@ -277,7 +277,7 @@ export function Playing() {
               className="text-4xl font-bold mb-4 text-primary relative z-10"
               style={{
                 animation: 'slideInFromTop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                textShadow: '0 0 20px var(--color-primary)',
+                textShadow: '0 0 10px var(--color-primary)',
               }}
             >
               Find Your Match

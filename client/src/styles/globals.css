@@ -94,14 +94,12 @@ body::after {
   0%, 100% {
     text-shadow:
       0 0 4px var(--color-primary),
-      0 0 11px var(--color-primary),
-      0 0 19px var(--color-primary);
+      0 0 10px var(--color-primary);
   }
   50% {
     text-shadow:
       0 0 2px var(--color-primary),
-      0 0 8px var(--color-primary),
-      0 0 14px var(--color-primary);
+      0 0 6px var(--color-primary);
   }
 }
 
@@ -145,8 +143,7 @@ body::after {
 .neon-text {
   text-shadow:
     0 0 4px var(--color-primary),
-    0 0 11px var(--color-primary),
-    0 0 19px var(--color-primary);
+    0 0 10px var(--color-primary);
 }
 
 .neon-border {

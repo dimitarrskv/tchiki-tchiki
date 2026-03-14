@@ -122,7 +122,7 @@ export function Home() {
         <div className="text-center mb-10">
           <div className="mb-6 flex justify-center">
             <div className="font-mono text-primary leading-[0.9]" style={{
-              textShadow: '0 0 15px rgba(30, 215, 96, 0.9), 0 0 30px rgba(30, 215, 96, 0.6), 0 0 45px rgba(30, 215, 96, 0.3)'
+              textShadow: '0 0 10px rgba(30, 215, 96, 0.5), 0 0 20px rgba(30, 215, 96, 0.2)'
             }}>
               <pre className="inline-block text-left text-[6px] sm:text-[8px]">
 {`████████╗ ██████╗██╗  ██╗██╗██╗  ██╗██╗      ████████╗ ██████╗██╗  ██╗██╗██╗  ██╗██╗

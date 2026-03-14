@@ -21,10 +21,8 @@ export function useCountdownSound(countdown: number, isCountdownPhase: boolean) 
   }, [countdown, isCountdownPhase]);
 
   const playTick = (count: number) => {
-    try {
-      const ctx = getContext();
-      ctx.resume().catch(() => {});
-
+    const ctx = getContext();
+    ctx.resume().then(() => {
       const now = ctx.currentTime;
 
       // Ascending pitch builds anticipation: 3 → 1
@@ -71,8 +69,6 @@ export function useCountdownSound(countdown: number, isCountdownPhase: boolean) 
       osc.stop(now + 0.15);
       sub.start(now);
       sub.stop(now + 0.18);
-    } catch (err) {
-      console.warn('Failed to play countdown sound:', err);
-    }
+    }).catch(() => {});
   };
 }
