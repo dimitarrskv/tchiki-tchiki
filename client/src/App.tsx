@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useGame } from './context/GameContext';
 import { useSocket } from './context/SocketContext';
 import { Home } from './pages/Home';
@@ -6,11 +7,28 @@ import { Playing } from './pages/Playing';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { MobileShell } from './components/layout/MobileShell';
 import { useWakeLock } from './hooks/useWakeLock';
+import { getContext } from './lib/audio';
 import { GamePhase } from 'shared/src/types';
 
 export function App() {
   const { room } = useGame();
   const { isRejoining } = useSocket();
+
+  // Keep AudioContext alive on iOS — resume on any user tap/click
+  useEffect(() => {
+    const resume = () => {
+      const ctx = getContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    };
+    document.addEventListener('touchstart', resume, { passive: true });
+    document.addEventListener('click', resume);
+    return () => {
+      document.removeEventListener('touchstart', resume);
+      document.removeEventListener('click', resume);
+    };
+  }, []);
 
   // Enable wake lock during active gameplay to prevent phone sleep
   const isPlaying = room?.phase && [

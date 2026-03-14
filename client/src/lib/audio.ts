@@ -43,28 +43,39 @@ export async function playPreview(url: string): Promise<void> {
   stopPreview();
   usingFallback = false;
 
+  const ctx = getContext();
+  console.log('[audio] playPreview — ctx.state:', ctx.state);
+
   try {
     // Try Web Audio API (bypasses iOS silent switch)
-    const ctx = getContext();
     await ctx.resume();
+    console.log('[audio] ctx resumed, state:', ctx.state);
 
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
     const arrayBuffer = await response.arrayBuffer();
+    console.log('[audio] fetched', arrayBuffer.byteLength, 'bytes');
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
 
     currentSource = ctx.createBufferSource();
     currentSource.buffer = audioBuffer;
     currentSource.connect(gainNode!);
     currentSource.start();
+    console.log('[audio] Web Audio playing');
   } catch (err) {
-    console.warn('Web Audio API failed, falling back to Audio element:', err);
+    console.warn('[audio] Web Audio failed, falling back to Audio element:', err);
     usingFallback = true;
 
     // Fallback to HTML Audio element
-    const audio = getFallbackAudio();
-    audio.src = url;
-    await audio.play();
+    try {
+      const audio = getFallbackAudio();
+      audio.src = url;
+      await audio.play();
+      console.log('[audio] HTML Audio fallback playing');
+    } catch (fallbackErr) {
+      console.error('[audio] Both playback methods failed:', fallbackErr);
+      throw fallbackErr;
+    }
   }
 }
 
@@ -90,6 +101,30 @@ export function seekPreview(timeSeconds: number): void {
   }
   // Web Audio API: seeking requires recreating the source — skip for simplicity
   // as sync corrections are rare and small
+}
+
+/** Play a short test tone — two ascending pings to confirm audio works. */
+export function playTestTone(): void {
+  const ctx = getContext();
+  if (ctx.state === 'suspended') return;
+
+  const now = ctx.currentTime;
+
+  [0, 0.15].forEach((offset, i) => {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = i === 0 ? 600 : 900;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, now + offset);
+    g.gain.linearRampToValueAtTime(0.25, now + offset + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.12);
+
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(now + offset);
+    osc.stop(now + offset + 0.15);
+  });
 }
 
 /** Play a "time's up" impact hit — bass drop + noise crack + sparkle. */

@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { useSocket } from '../context/SocketContext';
 import { MobileShell } from '../components/layout/MobileShell';
-import { unlockAudio } from '../lib/audio';
+import { unlockAudio, playTestTone } from '../lib/audio';
+
+type PendingAction = { type: 'create'; name: string } | { type: 'join'; name: string; code: string } | null;
 
 export function Home() {
   const { createRoom, joinRoom, error, clearError } = useGame();
   const { isConnected } = useSocket();
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   // Check for room code in URL on mount (invitation link / QR scan)
   useEffect(() => {
@@ -24,13 +27,31 @@ export function Home() {
   const handleCreate = () => {
     if (!name.trim()) return;
     unlockAudio();
-    createRoom(name.trim());
+    playTestTone();
+    setPendingAction({ type: 'create', name: name.trim() });
   };
 
   const handleJoin = () => {
     if (!name.trim() || roomCode.length !== 4) return;
     unlockAudio();
-    joinRoom(roomCode, name.trim());
+    playTestTone();
+    setPendingAction({ type: 'join', name: name.trim(), code: roomCode });
+  };
+
+  const handleConfirmAudio = () => {
+    if (!pendingAction) return;
+    unlockAudio();
+    if (pendingAction.type === 'create') {
+      createRoom(pendingAction.name);
+    } else {
+      joinRoom(pendingAction.code, pendingAction.name);
+    }
+    setPendingAction(null);
+  };
+
+  const handleRetryAudio = () => {
+    unlockAudio();
+    playTestTone();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -41,6 +62,58 @@ export function Home() {
       handleCreate();
     }
   };
+
+  // Audio gate overlay
+  if (pendingAction) {
+    return (
+      <MobileShell>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="text-center mb-10">
+            <div className="text-6xl mb-6" style={{
+              animation: 'countdownPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-20 h-20 mx-auto text-primary" style={{
+                filter: 'drop-shadow(0 0 15px rgba(0, 240, 255, 0.6))'
+              }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-text uppercase tracking-wider mb-2">Audio Check</h2>
+            <p className="text-text-muted text-sm font-mono">Did you hear the sound?</p>
+          </div>
+
+          <div className="w-full max-w-xs space-y-3">
+            <button
+              onClick={handleConfirmAudio}
+              className="w-full bg-primary hover:bg-primary-hover text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
+            >
+              {'>'} Yes, continue
+            </button>
+
+            <button
+              onClick={handleRetryAudio}
+              className="w-full border-2 border-primary/50 hover:border-primary text-primary font-bold py-3 rounded-lg transition-all uppercase tracking-wider"
+            >
+              Play again
+            </button>
+
+            <button
+              onClick={() => setPendingAction(null)}
+              className="w-full text-text-muted hover:text-primary py-2 text-sm transition-colors uppercase tracking-wide"
+            >
+              {'<'} Back
+            </button>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-text-muted text-xs font-mono">
+              Turn off silent mode and turn up volume
+            </p>
+          </div>
+        </div>
+      </MobileShell>
+    );
+  }
 
   return (
     <MobileShell>

@@ -5,6 +5,7 @@ import { useSocket } from '../context/SocketContext';
 import { MobileShell } from '../components/layout/MobileShell';
 import { Header } from '../components/layout/Header';
 import { PlayerCard } from '../components/room/PlayerCard';
+import { unlockAudio } from '../lib/audio';
 
 interface LogEntry {
   id: number;
@@ -175,7 +176,7 @@ export function Lobby() {
             </div>
 
             <button
-              onClick={startGame}
+              onClick={() => { unlockAudio(); startGame(); }}
               disabled={!canStart}
               className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-bg font-bold py-4 rounded-lg text-lg transition-all shadow-[0_0_20px_rgba(0,240,255,0.5)] hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] uppercase tracking-wider"
             >
