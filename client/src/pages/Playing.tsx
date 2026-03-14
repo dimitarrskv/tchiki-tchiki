@@ -15,7 +15,7 @@ interface TrackInfo {
 }
 
 export function Playing() {
-  const { room, playerId, phaseData, pairResults, isHost, nextRound, endGame, returnToLobby } = useGame();
+  const { room, playerId, phaseData, pairResults, isHost, leaveRoom, returnToLobby } = useGame();
   const { socket } = useSocket();
   const [countdown, setCountdown] = useState<number>(3);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -23,6 +23,7 @@ export function Playing() {
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
   const phaseStartTimeRef = useRef<number | null>(null);
   const [trackInfoMap, setTrackInfoMap] = useState<Record<string, TrackInfo>>({});
+  const [nextRoundIn, setNextRoundIn] = useState<number | null>(null);
 
   // Play countdown sounds
   useCountdownSound(countdown, room?.phase === GamePhase.COUNTDOWN);
@@ -95,6 +96,29 @@ export function Playing() {
     setTrackInfoMap(map);
   }, [pairResults?.trackUris, pairResults?.trackMeta]);
 
+  // Auto-advance countdown for RESULTS phase
+  useEffect(() => {
+    if (!room || room.phase !== GamePhase.RESULTS) {
+      setNextRoundIn(null);
+      return;
+    }
+
+    const autoAdvanceMs = phaseData?.autoAdvanceMs;
+    if (!autoAdvanceMs) return;
+
+    const startTime = Date.now();
+    setNextRoundIn(Math.ceil(autoAdvanceMs / 1000));
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, autoAdvanceMs - elapsed);
+      setNextRoundIn(Math.ceil(remaining / 1000));
+      if (remaining === 0) clearInterval(interval);
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [room?.phase, phaseData]);
+
   // Reset state when phase changes
   useEffect(() => {
     if (room?.phase === GamePhase.PLAYING) {
@@ -113,15 +137,21 @@ export function Playing() {
 
   if (!room) return null;
 
+  const isScrollablePhase = room.phase === GamePhase.REVEAL
+    || room.phase === GamePhase.RESULTS
+    || room.phase === GamePhase.GAME_OVER;
+
   return (
     <MobileShell>
       <Header />
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+      <div className={`flex-1 flex flex-col items-center text-center px-6 min-h-0 ${
+        isScrollablePhase ? 'overflow-y-auto pb-4' : 'justify-center'
+      }`}>
         {room.phase === GamePhase.COUNTDOWN && (
           <div className="w-full">
             {/* Round Number */}
             <div className="mb-4 text-text-muted font-mono text-sm uppercase tracking-wide">
-              Round {room.roundNumber}
+              Round {room.roundNumber} / {room.roundLimit}
             </div>
 
             {/* Animated Countdown Number */}
@@ -183,14 +213,14 @@ export function Playing() {
             <style>{`
               @keyframes countdownPop {
                 0% {
-                  transform: scale(0.3) rotate(-10deg);
+                  transform: scale(0.3);
                   opacity: 0;
                 }
                 50% {
-                  transform: scale(1.15) rotate(5deg);
+                  transform: scale(1.15);
                 }
                 100% {
-                  transform: scale(1) rotate(0deg);
+                  transform: scale(1);
                   opacity: 1;
                 }
               }
@@ -213,7 +243,7 @@ export function Playing() {
           <div className="w-full relative">
             {/* Round Number */}
             <div className="mb-2 text-text-muted font-mono text-sm uppercase tracking-wide relative z-10">
-              Round {room.roundNumber}
+              Round {room.roundNumber} / {room.roundLimit}
             </div>
 
             <div
@@ -317,7 +347,11 @@ export function Playing() {
                 {room.phase === GamePhase.REVEAL ? 'Reveal' : 'Results'}
               </div>
               <p className="text-text-muted font-mono text-sm">
-                {room.phase === GamePhase.REVEAL ? 'Here are the pairs...' : `Round ${room.roundNumber} Complete`}
+                {room.phase === GamePhase.REVEAL
+                  ? 'Here are the pairs...'
+                  : room.roundNumber >= room.roundLimit
+                    ? `Final Round — Results incoming...`
+                    : `Round ${room.roundNumber} / ${room.roundLimit}${nextRoundIn != null && nextRoundIn > 0 ? ` — Next in ${nextRoundIn}s...` : ' — Starting...'}`}
               </p>
             </div>
 
@@ -453,7 +487,7 @@ export function Playing() {
               </div>
               <div className="bg-bg-card border-2 border-primary/30 rounded-lg p-4">
                 <div className="space-y-2">
-                  {room.players
+                  {[...room.players]
                     .sort((a, b) => (room.scores[b.id] || 0) - (room.scores[a.id] || 0))
                     .map((player, index) => {
                       const score = room.scores[player.id] || 0;
@@ -482,30 +516,6 @@ export function Playing() {
               </div>
             </div>
 
-            {/* Host Controls */}
-            {room.phase === GamePhase.RESULTS && isHost && (
-              <div className="space-y-2">
-                <button
-                  onClick={nextRound}
-                  className="w-full bg-primary text-bg-primary font-bold py-3 px-4 rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] font-mono uppercase tracking-wide"
-                >
-                  Next Round
-                </button>
-                <button
-                  onClick={endGame}
-                  className="w-full bg-bg-card border-2 border-primary/30 text-text-muted font-mono py-3 px-4 rounded-lg hover:border-primary hover:text-primary transition-all uppercase tracking-wide text-sm"
-                >
-                  End Game
-                </button>
-              </div>
-            )}
-
-            {/* Non-host message */}
-            {room.phase === GamePhase.RESULTS && !isHost && (
-              <div className="text-center text-text-muted text-sm font-mono">
-                Waiting for host to start next round...
-              </div>
-            )}
           </div>
         )}
 
@@ -629,19 +639,24 @@ export function Playing() {
               </div>
 
               {/* Host Controls */}
-              {isHost && (
+              {isHost ? (
                 <button
                   onClick={returnToLobby}
                   className="w-full bg-primary text-bg-primary font-bold py-4 px-4 rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] font-mono uppercase tracking-wide"
                 >
                   Return to Lobby
                 </button>
-              )}
-
-              {/* Non-host message */}
-              {!isHost && (
-                <div className="text-center text-text-muted text-sm font-mono">
-                  Waiting for host to return to lobby...
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-center text-text-muted text-sm font-mono">
+                    Waiting for host to return to lobby...
+                  </div>
+                  <button
+                    onClick={leaveRoom}
+                    className="w-full bg-bg-card border-2 border-secondary/40 hover:border-secondary text-secondary font-mono py-3 px-4 rounded-lg transition-all uppercase tracking-wide text-sm"
+                  >
+                    Leave Game
+                  </button>
                 </div>
               )}
             </div>

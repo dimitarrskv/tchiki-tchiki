@@ -21,8 +21,8 @@ export class MusicPairs extends BaseGame {
 
   start(): void {
     const players = this.getConnectedPlayers();
-    if (players.length < 2) {
-      this.emit('room:error', { message: 'Need at least 2 players' });
+    if (players.length < 4) {
+      this.emit('room:error', { message: 'Need at least 4 players' });
       return;
     }
 
@@ -212,7 +212,14 @@ export class MusicPairs extends BaseGame {
     });
 
     this.scheduleTimeout(() => {
-      this.setPhase(GamePhase.RESULTS);
+      this.setPhase(GamePhase.RESULTS, { autoAdvanceMs: 8000 });
+
+      // Auto-advance to next round
+      this.scheduleTimeout(() => {
+        if (this.room.phase === GamePhase.RESULTS && this.onNextRound) {
+          this.onNextRound();
+        }
+      }, 8000);
     }, 5000);
   }
 

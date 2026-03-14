@@ -2,7 +2,7 @@ import { GamePhase, GameMode, RoomState } from 'shared';
 import { Player } from './Player';
 
 const MAX_PLAYERS = 12;
-const MIN_PLAYERS = 2; // For testing; real games need 4+
+const MIN_PLAYERS = 4;
 
 export class Room {
   code: string;
@@ -11,6 +11,7 @@ export class Room {
   phase: GamePhase;
   currentMode: GameMode | null;
   roundNumber: number;
+  roundLimit: number;
   scores: Map<string, number>;
   createdAt: Date;
 
@@ -22,6 +23,7 @@ export class Room {
     this.phase = GamePhase.LOBBY;
     this.currentMode = null;
     this.roundNumber = 0;
+    this.roundLimit = 5;
     this.scores = new Map();
     this.scores.set(host.id, 0);
     this.createdAt = new Date();
@@ -84,6 +86,7 @@ export class Room {
       phase: this.phase,
       currentMode: this.currentMode,
       roundNumber: this.roundNumber,
+      roundLimit: this.roundLimit,
       scores: Object.fromEntries(this.scores),
     };
   }

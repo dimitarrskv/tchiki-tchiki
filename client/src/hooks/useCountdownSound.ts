@@ -1,69 +1,78 @@
 import { useEffect, useRef } from 'react';
+import { getContext } from '../lib/audio';
 
 /**
- * Hook to play countdown beep sounds using Web Audio API
+ * Hook to play countdown sounds using the shared Web Audio API context.
+ * Reuses the AudioContext from audio.ts so it's already unlocked by user gesture.
+ * Warm electronic "kick" that builds tension: low → mid → high.
  */
 export function useCountdownSound(countdown: number, isCountdownPhase: boolean) {
-  const audioContextRef = useRef<AudioContext | null>(null);
   const hasPlayedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
-    // Initialize AudioContext once
-    if (!audioContextRef.current && typeof window !== 'undefined') {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-
-    return () => {
-      // Cleanup on unmount
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Play beep for countdown numbers 3, 2, 1 (check this BEFORE checking phase)
     if (countdown >= 1 && countdown <= 3 && !hasPlayedRef.current.has(countdown)) {
-      playBeep(countdown);
+      playTick(countdown);
       hasPlayedRef.current.add(countdown);
     }
 
-    // Reset when not in countdown phase
     if (!isCountdownPhase) {
       hasPlayedRef.current.clear();
     }
   }, [countdown, isCountdownPhase]);
 
-  const playBeep = (count: number) => {
-    const ctx = audioContextRef.current;
-    if (!ctx) return;
-
+  const playTick = (count: number) => {
     try {
-      // Create oscillator for beep sound
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
+      const ctx = getContext();
+      if (ctx.state === 'suspended') return;
 
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      // Different frequencies for different countdown numbers
-      // 3 = lower pitch, 2 = medium, 1 = higher pitch
-      const frequency = count === 3 ? 440 : count === 2 ? 554 : 659;
-      oscillator.frequency.value = frequency;
-      oscillator.type = 'sine';
-
-      // Volume envelope
       const now = ctx.currentTime;
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
 
-      // Play the beep
-      oscillator.start(now);
-      oscillator.stop(now + 0.15);
+      // Ascending pitch builds anticipation: 3 → 1
+      const freq = count === 3 ? 300 : count === 2 ? 500 : 800;
+
+      // Main tone — triangle wave for warmth
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq * 1.5, now);
+      osc.frequency.exponentialRampToValueAtTime(freq, now + 0.06);
+
+      // Sub layer for body
+      const sub = ctx.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(freq * 0.5, now);
+
+      // Filter to shape the tone
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(freq * 4, now);
+      filter.frequency.exponentialRampToValueAtTime(freq, now + 0.1);
+      filter.Q.value = 2;
+
+      // Volume envelope — punchy attack, quick decay
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.35, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+      const subGain = ctx.createGain();
+      subGain.gain.setValueAtTime(0, now);
+      subGain.gain.linearRampToValueAtTime(0.15, now + 0.005);
+      subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+      // Routing
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      sub.connect(subGain);
+      subGain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.15);
+      sub.start(now);
+      sub.stop(now + 0.18);
     } catch (err) {
-      console.warn('Failed to play countdown beep:', err);
+      console.warn('Failed to play countdown sound:', err);
     }
   };
 }

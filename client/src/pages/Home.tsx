@@ -33,6 +33,15 @@ export function Home() {
     joinRoom(roomCode, name.trim());
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter') return;
+    if (roomCode) {
+      handleJoin();
+    } else {
+      handleCreate();
+    }
+  };
+
   return (
     <MobileShell>
       <div className="flex-1 flex flex-col pt-16">
@@ -98,6 +107,7 @@ export function Home() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="> ENTER YOUR NAME"
             maxLength={20}
             className="w-full bg-bg-card border-2 border-primary/50 rounded-lg px-4 py-3 text-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary transition-all uppercase tracking-wider"

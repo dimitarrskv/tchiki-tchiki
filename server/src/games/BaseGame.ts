@@ -21,6 +21,7 @@ export abstract class BaseGame {
   protected room: Room;
   protected config: GameConfig;
   protected timers: NodeJS.Timeout[] = [];
+  public onNextRound?: () => void;
 
   constructor(io: TypedServer, room: Room, config?: Partial<GameConfig>) {
     this.io = io;

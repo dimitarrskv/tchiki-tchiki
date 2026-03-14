@@ -20,8 +20,38 @@ type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 // Active games per room
 const activeGames = new Map<string, BaseGame>();
 
-function createGame(io: TypedServer, room: any): BaseGame {
-  return new MusicPairs(io, room);
+function endGame(io: TypedServer, room: any): void {
+  const game = activeGames.get(room.code);
+  if (game) {
+    game.cleanup();
+    activeGames.delete(room.code);
+  }
+
+  room.phase = GamePhase.GAME_OVER;
+  room.currentMode = null;
+
+  io.to(room.code).emit('game:ended', {
+    finalScores: Object.fromEntries(room.scores),
+  });
+  io.to(room.code).emit('room:updated', { room: room.toState() });
+}
+
+function startNewRound(io: TypedServer, room: any): void {
+  // Check if round limit reached
+  if (room.roundNumber >= room.roundLimit) {
+    endGame(io, room);
+    return;
+  }
+
+  const prevGame = activeGames.get(room.code);
+  if (prevGame) {
+    prevGame.cleanup();
+  }
+
+  const game = new MusicPairs(io, room);
+  game.onNextRound = () => startNewRound(io, room);
+  activeGames.set(room.code, game);
+  game.start();
 }
 
 export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager): void {
@@ -94,20 +124,35 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
       if (!result) return;
 
       const { room, player } = result;
+      const wasHost = player.isHost;
+      const wasInGame = room.phase !== GamePhase.LOBBY && room.phase !== GamePhase.GAME_OVER;
+
       room.removePlayer(player.id);
       socket.leave(room.code);
 
       io.to(room.code).emit('room:playerLeft', { playerId: player.id });
 
-      if (!room.isEmpty()) {
-        io.to(room.code).emit('room:updated', { room: room.toState() });
-      } else {
+      if (room.isEmpty()) {
         // Clean up game if room is empty
         const game = activeGames.get(room.code);
         if (game) {
           game.cleanup();
           activeGames.delete(room.code);
         }
+      } else if (wasHost) {
+        // Host left — end the game and boot everyone back to home
+        const game = activeGames.get(room.code);
+        if (game) {
+          game.cleanup();
+          activeGames.delete(room.code);
+        }
+        io.to(room.code).emit('room:error', { message: 'Host has left the game' });
+        io.to(room.code).emit('room:disbanded');
+      } else if (wasInGame && room.connectedPlayerCount < 2) {
+        // Not enough players to continue — end the game
+        endGame(io, room);
+      } else {
+        io.to(room.code).emit('room:updated', { room: room.toState() });
       }
     });
 
@@ -154,17 +199,7 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
         room.scores.clear();
       }
 
-      // Clean up any previous game
-      const prevGame = activeGames.get(room.code);
-      if (prevGame) {
-        prevGame.cleanup();
-      }
-
-      // Create and start the game
-      const game = createGame(io, room);
-      activeGames.set(room.code, game);
-
-      game.start();
+      startNewRound(io, room);
     });
 
     socket.on('game:claimMatch', (payload: ClaimMatchPayload) => {
@@ -189,16 +224,7 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
       const { room, player } = result;
       if (!player.isHost) return;
 
-      // Clean up previous game
-      const prevGame = activeGames.get(room.code);
-      if (prevGame) {
-        prevGame.cleanup();
-      }
-
-      // Start a new round directly (no mode selection needed)
-      const game = createGame(io, room);
-      activeGames.set(room.code, game);
-      game.start();
+      startNewRound(io, room);
     });
 
     socket.on('game:end', () => {
@@ -208,20 +234,21 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
       const { room, player } = result;
       if (!player.isHost) return;
 
-      // Clean up game
-      const game = activeGames.get(room.code);
-      if (game) {
-        game.cleanup();
-        activeGames.delete(room.code);
-      }
+      endGame(io, room);
+    });
 
-      // Set to GAME_OVER phase to show final results
-      room.phase = GamePhase.GAME_OVER;
-      room.currentMode = null;
+    socket.on('room:setRoundLimit', (payload: { roundLimit: number }) => {
+      const result = roomManager.getPlayerBySocketId(socket.id);
+      if (!result) return;
 
-      io.to(room.code).emit('game:ended', {
-        finalScores: Object.fromEntries(room.scores),
-      });
+      const { room, player } = result;
+      if (!player.isHost) return;
+      if (room.phase !== GamePhase.LOBBY) return;
+
+      const limit = payload.roundLimit;
+      if (![3, 5, 10].includes(limit)) return;
+
+      room.roundLimit = limit;
       io.to(room.code).emit('room:updated', { room: room.toState() });
     });
 

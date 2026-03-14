@@ -7,7 +7,7 @@ import { Header } from '../components/layout/Header';
 import { PlayerCard } from '../components/room/PlayerCard';
 
 export function Lobby() {
-  const { room, playerId, isHost, startGame } = useGame();
+  const { room, playerId, isHost, startGame, setRoundLimit } = useGame();
   const { socket } = useSocket();
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -21,7 +21,7 @@ export function Lobby() {
   if (!room) return null;
 
   const joinUrl = `${window.location.origin}?code=${room.code}`;
-  const canStart = room.players.length >= 2;
+  const canStart = room.players.length >= 4;
 
   const copyLink = async () => {
     try {
@@ -92,6 +92,28 @@ export function Lobby() {
       <div className="shrink-0 pt-4 pb-2">
         {isHost ? (
           <>
+            {/* Round Limit Selector */}
+            <div className="mb-3">
+              <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
+                {'>'} Rounds
+              </div>
+              <div className="flex gap-2">
+                {[3, 5, 10].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setRoundLimit(n)}
+                    className={`flex-1 py-2 rounded-lg font-mono text-sm transition-all border-2 ${
+                      room.roundLimit === n
+                        ? 'bg-primary/20 border-primary text-primary'
+                        : 'bg-bg-card border-primary/30 text-text-muted hover:border-primary/50'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={startGame}
               disabled={!canStart}
@@ -103,7 +125,7 @@ export function Lobby() {
             </button>
             {!canStart && (
               <div className="text-xs text-text-muted text-center mt-2 font-mono">
-                // Minimum 2 users required
+                // Minimum 4 users required
               </div>
             )}
           </>

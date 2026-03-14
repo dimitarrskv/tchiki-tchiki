@@ -32,6 +32,7 @@ export interface RoomState {
   phase: GamePhase;
   currentMode: GameMode | null;
   roundNumber: number;
+  roundLimit: number;
   scores: Record<string, number>;
 }
 
@@ -102,6 +103,7 @@ export interface ClientToServerEvents {
   'game:claimMatch': (payload: ClaimMatchPayload) => void;
   'game:nextRound': () => void;
   'game:end': () => void;
+  'room:setRoundLimit': (payload: { roundLimit: number }) => void;
   'game:returnToLobby': () => void;
 }
 
@@ -128,4 +130,5 @@ export interface ServerToClientEvents {
   'game:pairResults': (payload: PairResult) => void;
   'game:scores': (payload: { scores: Record<string, number> }) => void;
   'game:ended': (payload: { finalScores: Record<string, number> }) => void;
+  'room:disbanded': () => void;
 }

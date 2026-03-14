@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useSocket } from './SocketContext';
 import { saveSession, clearSession } from '../lib/sessionStorage';
-import { playPreview, stopPreview, seekPreview } from '../lib/audio';
-import type { RoomState, GamePhase, PairResult, TrackMeta } from 'shared/src/types';
+import { playPreview, stopPreview, seekPreview, playTimesUp } from '../lib/audio';
+import type { RoomState, PairResult, TrackMeta } from 'shared/src/types';
 
 interface GameContextValue {
   room: RoomState | null;
@@ -20,6 +20,7 @@ interface GameContextValue {
   nextRound: () => void;
   endGame: () => void;
   returnToLobby: () => void;
+  setRoundLimit: (limit: number) => void;
   clearError: () => void;
 }
 
@@ -39,6 +40,7 @@ const GameContext = createContext<GameContextValue>({
   nextRound: () => {},
   endGame: () => {},
   returnToLobby: () => {},
+  setRoundLimit: () => {},
   clearError: () => {},
 });
 
@@ -134,6 +136,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setError(message);
     });
 
+    socket.on('room:disbanded', () => {
+      stopPreview();
+      setRoom(null);
+      setPlayerId(null);
+      setPairResults(null);
+      setCurrentTrackUri(null);
+      setCurrentTrackMeta(null);
+      clearSession();
+    });
+
     socket.on('game:phaseChange', ({ phase, data }) => {
       setRoom(prev => {
         if (!prev) return prev;
@@ -150,10 +162,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
 
     socket.on('game:ended', () => {
-      setRoom(prev => {
-        if (!prev) return prev;
-        return { ...prev, phase: 'lobby' as GamePhase, currentMode: null };
-      });
+      stopPreview();
+      setPairResults(null);
     });
 
     // Music playback via shared Audio element (pre-unlocked for mobile)
@@ -187,6 +197,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setCurrentTrackUri(null);
       setCurrentTrackMeta(null);
       stopPreview();
+      playTimesUp();
     });
 
     socket.on('game:pairResults', (results: PairResult) => {
@@ -209,6 +220,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       socket.off('game:play');
       socket.off('game:stop');
       socket.off('game:pairResults');
+      socket.off('room:disbanded');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket]);
@@ -249,6 +261,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setPairResults(null);
   }, [socket]);
 
+  const setRoundLimit = useCallback((limit: number) => {
+    socket?.emit('room:setRoundLimit', { roundLimit: limit });
+  }, [socket]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -271,6 +287,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         nextRound,
         endGame,
         returnToLobby,
+        setRoundLimit,
         clearError,
       }}
     >
