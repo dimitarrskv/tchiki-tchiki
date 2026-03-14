@@ -24,17 +24,25 @@ export function Home() {
     }
   }, []);
 
+  // Play test tone after a brief delay when the audio gate opens.
+  // On iOS, the AudioContext needs a moment after creation before it can
+  // produce sound. Playing immediately in the same gesture that creates
+  // the context is unreliable.
+  useEffect(() => {
+    if (!pendingAction) return;
+    const timer = setTimeout(() => playTestTone(), 100);
+    return () => clearTimeout(timer);
+  }, [pendingAction]);
+
   const handleCreate = () => {
     if (!name.trim()) return;
     unlockAudio();
-    playTestTone();
     setPendingAction({ type: 'create', name: name.trim() });
   };
 
   const handleJoin = () => {
     if (!name.trim() || roomCode.length !== 4) return;
     unlockAudio();
-    playTestTone();
     setPendingAction({ type: 'join', name: name.trim(), code: roomCode });
   };
 
