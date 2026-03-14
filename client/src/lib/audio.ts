@@ -26,11 +26,11 @@ function getFallbackAudio(): HTMLAudioElement {
   return fallbackAudio;
 }
 
-/** Call from a click/tap handler to unlock audio on iOS. */
-export function unlockAudio(): void {
+/** Call from a click/tap handler to unlock audio on iOS. Returns a promise that resolves when the context is running. */
+export async function unlockAudio(): Promise<void> {
   // Unlock Web Audio API
   const ctx = getContext();
-  ctx.resume().catch(() => {});
+  await ctx.resume().catch(() => {});
 
   // Also unlock HTML Audio element as fallback
   const audio = getFallbackAudio();
@@ -104,9 +104,9 @@ export function seekPreview(timeSeconds: number): void {
 }
 
 /** Play a short test tone — two ascending pings to confirm audio works. */
-export function playTestTone(): void {
+export async function playTestTone(): Promise<void> {
   const ctx = getContext();
-  if (ctx.state === 'suspended') return;
+  await ctx.resume().catch(() => {});
 
   const now = ctx.currentTime;
 
@@ -128,9 +128,9 @@ export function playTestTone(): void {
 }
 
 /** Play a "time's up" impact hit — bass drop + noise crack + sparkle. */
-export function playTimesUp(): void {
+export async function playTimesUp(): Promise<void> {
   const ctx = getContext();
-  if (ctx.state === 'suspended') return;
+  await ctx.resume().catch(() => {});
 
   const now = ctx.currentTime;
 

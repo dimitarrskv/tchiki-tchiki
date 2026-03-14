@@ -24,23 +24,23 @@ export function Home() {
     }
   }, []);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!name.trim()) return;
-    unlockAudio();
+    await unlockAudio();
     playTestTone();
     setPendingAction({ type: 'create', name: name.trim() });
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!name.trim() || roomCode.length !== 4) return;
-    unlockAudio();
+    await unlockAudio();
     playTestTone();
     setPendingAction({ type: 'join', name: name.trim(), code: roomCode });
   };
 
-  const handleConfirmAudio = () => {
+  const handleConfirmAudio = async () => {
     if (!pendingAction) return;
-    unlockAudio();
+    await unlockAudio();
     if (pendingAction.type === 'create') {
       createRoom(pendingAction.name);
     } else {
@@ -49,8 +49,8 @@ export function Home() {
     setPendingAction(null);
   };
 
-  const handleRetryAudio = () => {
-    unlockAudio();
+  const handleRetryAudio = async () => {
+    await unlockAudio();
     playTestTone();
   };
 
