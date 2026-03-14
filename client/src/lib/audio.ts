@@ -104,28 +104,51 @@ export function seekPreview(timeSeconds: number): void {
   }
 }
 
-/** Play a short test tone — two ascending pings to confirm audio works. */
+// Pre-generated test tone WAV (two ascending pings) — avoids Web Audio
+// entirely so it works on the first tap on mobile.
+let testToneUrl: string | null = null;
+
+function getTestToneUrl(): string {
+  if (testToneUrl) return testToneUrl;
+
+  const rate = 22050;
+  const len = (rate * 0.3) | 0;
+  const buf = new ArrayBuffer(44 + len * 2);
+  const v = new DataView(buf);
+
+  // WAV header
+  const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + len * 2, true); w(8, 'WAVE');
+  w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, len * 2, true);
+
+  // Two pings: 600 Hz then 900 Hz with exponential decay
+  for (let i = 0; i < len; i++) {
+    const t = i / rate;
+    let s = 0;
+    if (t < 0.12) {
+      s = Math.sin(2 * Math.PI * 600 * t) * Math.exp(-t * 25) * 0.3;
+    } else if (t >= 0.15 && t < 0.27) {
+      const t2 = t - 0.15;
+      s = Math.sin(2 * Math.PI * 900 * t2) * Math.exp(-t2 * 25) * 0.3;
+    }
+    v.setInt16(44 + i * 2, (s * 32767) | 0, true);
+  }
+
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  testToneUrl = 'data:audio/wav;base64,' + btoa(bin);
+  return testToneUrl;
+}
+
+/** Play a short test tone via HTML Audio — reliable on mobile first tap. */
 export function playTestTone(): void {
-  const ctx = getContext();
-  ctx.resume().then(() => {
-    const now = ctx.currentTime;
-
-    [0, 0.15].forEach((offset, i) => {
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = i === 0 ? 600 : 900;
-
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, now + offset);
-      g.gain.linearRampToValueAtTime(0.25, now + offset + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.12);
-
-      osc.connect(g);
-      g.connect(ctx.destination);
-      osc.start(now + offset);
-      osc.stop(now + offset + 0.15);
-    });
-  }).catch(() => {});
+  const audio = getFallbackAudio();
+  audio.src = getTestToneUrl();
+  audio.play().catch(() => {});
 }
 
 /** Play a "time's up" impact hit — bass drop + noise crack + sparkle. */
