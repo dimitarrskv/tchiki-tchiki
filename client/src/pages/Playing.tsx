@@ -7,6 +7,7 @@ import { CircularTimer } from '../components/game/CircularTimer';
 import { useCountdownSound } from '../hooks/useCountdownSound';
 import { GamePhase } from 'shared/src/types';
 import { ShareButton } from '../components/game/ShareButton';
+import { unlockAudio } from '../lib/audio';
 
 interface TrackInfo {
   name: string;
@@ -26,6 +27,7 @@ export function Playing() {
   const [nextRoundIn, setNextRoundIn] = useState<number | null>(null);
   const [activePairIndex, setActivePairIndex] = useState(0);
   const pairsScrollRef = useRef<HTMLDivElement>(null);
+  const [audioReady, setAudioReady] = useState(false);
 
   // Play countdown sounds
   useCountdownSound(countdown, room?.phase === GamePhase.COUNTDOWN);
@@ -128,6 +130,7 @@ export function Playing() {
     }
     if (room?.phase !== GamePhase.COUNTDOWN) {
       setCountdown(0);
+      setAudioReady(false);
     }
     setActivePairIndex(0);
   }, [room?.phase]);
@@ -160,7 +163,7 @@ export function Playing() {
         room.phase === GamePhase.COUNTDOWN ? 'justify-center' : ''
       }`}>
         {room.phase === GamePhase.COUNTDOWN && (
-          <div className="w-full">
+          <div className="w-full" onClick={() => { unlockAudio(); setAudioReady(true); }}>
             {/* Round Number */}
             <div className="mb-4 text-text-muted font-mono text-sm uppercase tracking-wide">
               Round {room.roundNumber} / {room.roundLimit}
@@ -204,12 +207,14 @@ export function Playing() {
             </div>
 
             <p
-              className="text-text-muted font-mono mb-6"
+              className={`font-mono mb-6 transition-colors ${
+                audioReady ? 'text-success' : 'text-primary'
+              }`}
               style={{
-                animation: 'fadeInUp 0.6s ease-out'
+                animation: audioReady ? 'fadeInUp 0.6s ease-out' : 'fadeInUp 0.6s ease-out, pulse 1.5s ease-in-out infinite',
               }}
             >
-              {'>'} headphones on
+              {audioReady ? '> sound on' : '> tap for sound'}
             </p>
 
             <div
@@ -251,6 +256,11 @@ export function Playing() {
                   transform: translateY(0);
                   filter: blur(0);
                 }
+              }
+
+              @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
               }
             `}</style>
           </div>
