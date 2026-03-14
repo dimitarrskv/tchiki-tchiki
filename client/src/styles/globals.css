@@ -177,6 +177,15 @@ input:focus {
     0 0 20px rgba(30, 215, 96, 0.3);
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Cyberpunk scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

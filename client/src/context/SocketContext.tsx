@@ -160,6 +160,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   );
 }
 
+export { SocketContext };
+
 export function useSocket(): SocketContextValue {
   return useContext(SocketContext);
 }

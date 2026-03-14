@@ -132,11 +132,11 @@ export function Lobby() {
       </div>
 
       {/* Player List */}
+      <div className="text-sm text-text-muted mb-3 font-mono uppercase tracking-wider flex items-center gap-2 shrink-0">
+        <span className="text-primary">{'>>'}</span>
+        <span>Players [{room.players.length}]</span>
+      </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="text-sm text-text-muted mb-3 font-mono uppercase tracking-wider flex items-center gap-2">
-          <span className="text-primary">{'>>'}</span>
-          <span>Players [{room.players.length}]</span>
-        </div>
         <div className="space-y-2">
           {room.players.map((player) => (
             <PlayerCard
@@ -158,7 +158,7 @@ export function Lobby() {
                 {'>'} Rounds
               </div>
               <div className="flex gap-2">
-                {[3, 5, 10].map(n => (
+                {[5, 10, 15].map(n => (
                   <button
                     key={n}
                     onClick={() => setRoundLimit(n)}

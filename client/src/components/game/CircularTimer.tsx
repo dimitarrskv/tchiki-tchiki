@@ -12,25 +12,25 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  // Determine color based on time remaining
+  // Determine color based on time remaining (matches theme vars in globals.css)
   const getColor = () => {
     if (percentage > 50) {
       return {
-        stroke: 'rgb(0, 255, 128)', // success green
-        glow: 'rgba(0, 255, 128, 0.4)',
+        stroke: 'rgb(30, 215, 96)',
+        glow: 'rgba(30, 215, 96, 0.4)',
         text: 'text-success'
       };
     } else if (percentage > 25) {
       return {
-        stroke: 'rgb(255, 193, 7)', // warning yellow
-        glow: 'rgba(255, 193, 7, 0.4)',
-        text: 'text-yellow-400'
+        stroke: 'rgb(255, 190, 11)',
+        glow: 'rgba(255, 190, 11, 0.4)',
+        text: 'text-warning'
       };
     } else {
       return {
-        stroke: 'rgb(255, 87, 87)', // error red
-        glow: 'rgba(255, 87, 87, 0.4)',
-        text: 'text-red-400'
+        stroke: 'rgb(255, 0, 110)',
+        glow: 'rgba(255, 0, 110, 0.4)',
+        text: 'text-secondary'
       };
     }
   };
@@ -53,7 +53,7 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
           cx="90"
           cy="90"
           r={radius}
-          stroke="rgba(0, 240, 255, 0.1)"
+          stroke="rgba(30, 215, 96, 0.1)"
           strokeWidth="12"
           fill="none"
         />
@@ -77,7 +77,7 @@ export function CircularTimer({ timeRemaining, totalDuration }: CircularTimerPro
       {/* Timer text in center */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center">
-          <div className={`text-5xl font-bold font-mono ${colors.text} transition-colors duration-300`}
+          <div className={`text-5xl font-bold ${colors.text} transition-colors duration-300`}
             style={{
               textShadow: `0 0 calc(20px + 15px * var(--beat-intensity, 0)) ${colors.glow}`,
             }}

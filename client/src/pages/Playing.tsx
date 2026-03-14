@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
 import { useSocket } from '../context/SocketContext';
 import { MobileShell } from '../components/layout/MobileShell';
@@ -24,6 +24,8 @@ export function Playing() {
   const phaseStartTimeRef = useRef<number | null>(null);
   const [trackInfoMap, setTrackInfoMap] = useState<Record<string, TrackInfo>>({});
   const [nextRoundIn, setNextRoundIn] = useState<number | null>(null);
+  const [activePairIndex, setActivePairIndex] = useState(0);
+  const pairsScrollRef = useRef<HTMLDivElement>(null);
 
   // Play countdown sounds
   useCountdownSound(countdown, room?.phase === GamePhase.COUNTDOWN);
@@ -127,7 +129,21 @@ export function Playing() {
     if (room?.phase !== GamePhase.COUNTDOWN) {
       setCountdown(0);
     }
+    setActivePairIndex(0);
   }, [room?.phase]);
+
+  const handlePairsScroll = useCallback(() => {
+    const el = pairsScrollRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.offsetWidth);
+    setActivePairIndex(index);
+  }, []);
+
+  const scrollToPair = useCallback((index: number) => {
+    const el = pairsScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * el.offsetWidth, behavior: 'smooth' });
+  }, []);
 
   const handleClaimMatch = (partnerId: string) => {
     if (!socket) return;
@@ -137,15 +153,11 @@ export function Playing() {
 
   if (!room) return null;
 
-  const isScrollablePhase = room.phase === GamePhase.REVEAL
-    || room.phase === GamePhase.RESULTS
-    || room.phase === GamePhase.GAME_OVER;
-
   return (
     <MobileShell>
       <Header />
       <div className={`flex-1 flex flex-col items-center text-center px-6 min-h-0 ${
-        isScrollablePhase ? 'overflow-y-auto pb-4' : 'justify-center'
+        room.phase === GamePhase.COUNTDOWN ? 'justify-center' : ''
       }`}>
         {room.phase === GamePhase.COUNTDOWN && (
           <div className="w-full">
@@ -245,7 +257,7 @@ export function Playing() {
         )}
 
         {room.phase === GamePhase.PLAYING && (
-          <div className="w-full relative">
+          <div className="w-full relative pb-2 flex-1 flex flex-col min-h-0">
             {/* Round Number */}
             <div className="mb-2 text-text-muted font-mono text-sm uppercase tracking-wide relative z-10">
               Round {room.roundNumber} / {room.roundLimit}
@@ -303,10 +315,10 @@ export function Playing() {
             </div>
 
             {/* Partner selection */}
-            <div className="space-y-2 relative z-10">
-              <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
-                {'>'} pick your match:
-              </div>
+            <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide relative z-10 shrink-0">
+              {'>'} pick your match:
+            </div>
+            <div className="space-y-2 relative z-10 overflow-y-auto min-h-0 flex-1 pb-2">
               {room.players
                 .filter(p => p.id !== playerId)
                 .map(player => (
@@ -340,10 +352,10 @@ export function Playing() {
         )}
 
         {(room.phase === GamePhase.REVEAL || room.phase === GamePhase.RESULTS) && (
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md flex-1 flex flex-col min-h-0">
             {/* Header */}
             <div
-              className="text-center mb-6"
+              className="text-center mb-4 shrink-0"
               style={{
                 animation: 'revealBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
               }}
@@ -387,69 +399,65 @@ export function Playing() {
               }
             `}</style>
 
-            {/* Pairs Display */}
-            {pairResults && (
-              <div className="space-y-3 mb-6">
+            {/* Pairs Carousel */}
+            {pairResults && (() => {
+              // Sort pairs so current player's pair comes first
+              const sortedIndices = pairResults.pairs
+                .map((_, i) => i)
+                .sort((a, b) => {
+                  const aHasMe = pairResults.pairs[a].includes(playerId!);
+                  const bHasMe = pairResults.pairs[b].includes(playerId!);
+                  if (aHasMe && !bHasMe) return -1;
+                  if (!aHasMe && bHasMe) return 1;
+                  return 0;
+                });
+
+              return (
+              <div className="mb-4 shrink-0">
                 <div
                   className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide"
-                  style={{
-                    animation: 'fadeIn 0.5s ease-out'
-                  }}
+                  style={{ animation: 'fadeIn 0.5s ease-out' }}
                 >
-                  {'>'} Pairs:
+                  {'>'} Pairs ({activePairIndex + 1}/{pairResults.pairs.length}):
                 </div>
-                {pairResults.pairs.map((pair, index) => {
-                  const [player1Id, player2Id] = pair;
-                  const player1 = room.players.find(p => p.id === player1Id);
-                  const player2 = room.players.find(p => p.id === player2Id);
+                {/* Carousel container */}
+                <div
+                  ref={pairsScrollRef}
+                  onScroll={handlePairsScroll}
+                  className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-6 px-6 pr-12"
+                >
+                  {sortedIndices.map((originalIndex) => {
+                    const pair = pairResults.pairs[originalIndex];
+                    const [player1Id, player2Id] = pair;
+                    const player1 = room.players.find(p => p.id === player1Id);
+                    const player2 = room.players.find(p => p.id === player2Id);
 
-                  const isPerfectMatch = pairResults.matchedCorrectly.some(
-                    match => (match[0] === player1Id && match[1] === player2Id) ||
-                             (match[1] === player1Id && match[0] === player2Id)
-                  );
+                    const isPerfectMatch = pairResults.matchedCorrectly.some(
+                      match => (match[0] === player1Id && match[1] === player2Id) ||
+                               (match[1] === player1Id && match[0] === player2Id)
+                    );
 
-                  const player1Correct = pairResults.correctGuesses?.includes(player1Id);
-                  const player2Correct = pairResults.correctGuesses?.includes(player2Id);
+                    const player1Correct = pairResults.correctGuesses?.includes(player1Id);
+                    const player2Correct = pairResults.correctGuesses?.includes(player2Id);
 
-                  const isSolo = player1Id === player2Id;
+                    const isSolo = player1Id === player2Id;
+                    const isMyPair = pair.includes(playerId!);
 
-                  return (
-                    <div
-                      key={index}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        isPerfectMatch
-                          ? 'bg-success/10 border-success shadow-[0_0_20px_rgba(0,255,128,0.3)]'
-                          : (player1Correct || player2Correct)
-                          ? 'bg-primary/5 border-primary/50'
-                          : 'bg-bg-card border-primary/30'
-                      }`}
-                      style={{
-                        animation: `slideInLeft 0.5s ease-out ${index * 0.15}s both`
-                      }}
-                    >
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className={`font-mono text-sm uppercase tracking-wide ${
-                              player1Correct ? 'text-primary' : ''
-                            }`}>
-                              {player1?.name || 'Unknown'}
-                              {player1Correct && !isPerfectMatch && ' ✓'}
-                            </span>
-                            {!isSolo && (
-                              <>
-                                <span className="text-primary">↔</span>
-                                <span className={`font-mono text-sm uppercase tracking-wide ${
-                                  player2Correct ? 'text-primary' : ''
-                                }`}>
-                                  {player2?.name || 'Unknown'}
-                                  {player2Correct && !isPerfectMatch && ' ✓'}
-                                </span>
-                              </>
-                            )}
-                            {isSolo && (
-                              <span className="text-text-muted text-xs">(solo)</span>
-                            )}
+                    return (
+                      <div
+                        key={originalIndex}
+                        className={`p-3 rounded-lg border-2 transition-all snap-start shrink-0 w-[85%] ${
+                          isPerfectMatch
+                            ? 'bg-success/10 border-success shadow-[0_0_20px_rgba(0,255,128,0.3)]'
+                            : (player1Correct || player2Correct)
+                            ? 'bg-primary/5 border-primary/50'
+                            : 'bg-bg-card border-primary/30'
+                        }`}
+                      >
+                        {/* Badge */}
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="text-text-muted font-mono text-xs">
+                            {isMyPair ? 'Your Pair' : `Pair ${originalIndex + 1}`}
                           </div>
                           {isPerfectMatch && (
                             <span className="text-success text-xs font-mono">[MATCH]</span>
@@ -460,18 +468,41 @@ export function Playing() {
                           {!isPerfectMatch && !player1Correct && !player2Correct && !isSolo && (
                             <span className="text-text-muted text-xs font-mono">[MISS]</span>
                           )}
+                          {isSolo && (
+                            <span className="text-text-muted text-xs font-mono">[SOLO]</span>
+                          )}
+                        </div>
+                        {/* Players */}
+                        <div className="flex items-center gap-2 text-left">
+                          <span className={`font-mono text-sm uppercase tracking-wide truncate ${
+                            player1Correct ? 'text-primary' : ''
+                          }`}>
+                            {player1?.name || 'Unknown'}
+                            {player1Correct && !isPerfectMatch && ' ✓'}
+                          </span>
+                          {!isSolo && (
+                            <>
+                              <span className="text-primary shrink-0">↔</span>
+                              <span className={`font-mono text-sm uppercase tracking-wide truncate ${
+                                player2Correct ? 'text-primary' : ''
+                              }`}>
+                                {player2?.name || 'Unknown'}
+                                {player2Correct && !isPerfectMatch && ' ✓'}
+                              </span>
+                            </>
+                          )}
                         </div>
                         {/* Song info */}
-                        {pairResults.trackUris?.[index] && trackInfoMap[pairResults.trackUris[index]] && (() => {
-                          const track = trackInfoMap[pairResults.trackUris[index]];
+                        {pairResults.trackUris?.[originalIndex] && trackInfoMap[pairResults.trackUris[originalIndex]] && (() => {
+                          const track = trackInfoMap[pairResults.trackUris[originalIndex]];
                           return (
-                            <div className="flex items-center gap-3 mt-1 pt-2 border-t border-primary/10">
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/10">
                               <img
                                 src={track.imageUrl}
                                 alt={track.name}
-                                className="w-10 h-10 rounded"
+                                className="w-8 h-8 rounded shrink-0"
                               />
-                              <div className="min-w-0 flex-1">
+                              <div className="min-w-0 flex-1 text-left">
                                 <div className="font-mono text-xs text-primary truncate">{track.name}</div>
                                 <div className="font-mono text-xs text-text-muted truncate">{track.artist}</div>
                               </div>
@@ -479,24 +510,42 @@ export function Playing() {
                           );
                         })()}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                {/* Dot indicators */}
+                {pairResults.pairs.length > 1 && (
+                  <div className="flex justify-center gap-1.5 mt-3">
+                    {pairResults.pairs.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => scrollToPair(index)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === activePairIndex
+                            ? 'bg-primary scale-125'
+                            : 'bg-primary/30'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+              );
+            })()}
 
             {/* Scores */}
-            <div className="mb-6">
-              <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="text-xs text-text-muted font-mono mb-2 uppercase tracking-wide shrink-0">
                 {'>'} Scores:
               </div>
-              <div className="bg-bg-card border-2 border-primary/30 rounded-lg p-4">
+              <div className="bg-bg-card border-2 border-primary/30 rounded-lg p-4 flex-1 min-h-0 overflow-y-auto">
                 <div className="space-y-2">
                   {[...room.players]
                     .sort((a, b) => (room.scores[b.id] || 0) - (room.scores[a.id] || 0))
                     .map((player, index) => {
                       const score = room.scores[player.id] || 0;
                       const isCurrentPlayer = player.id === playerId;
+                      const gotPointThisRound = pairResults?.correctGuesses?.includes(player.id);
                       return (
                         <div
                           key={player.id}
@@ -510,6 +559,9 @@ export function Playing() {
                               {player.name}
                               {isCurrentPlayer && ' (you)'}
                             </span>
+                            {gotPointThisRound && (
+                              <span className="text-success text-xs">+1</span>
+                            )}
                           </div>
                           <span className={score > 0 ? 'text-success' : ''}>
                             {score} pts
@@ -533,15 +585,15 @@ export function Playing() {
           const amWinner = sortedPlayers[0]?.id === playerId && myScore > 0;
 
           return (
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md flex-1 flex flex-col min-h-0">
               {/* Header */}
               <div
-                className="text-center mb-6"
+                className="text-center mb-4 shrink-0"
                 style={{
                   animation: 'revealBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
                 }}
               >
-                <div className="text-5xl font-bold mb-4 text-primary neon-text">
+                <div className="text-5xl font-bold mb-2 text-primary neon-text">
                   Game Over
                 </div>
                 <p className="text-text-muted font-mono text-sm">
@@ -549,87 +601,90 @@ export function Playing() {
                 </p>
               </div>
 
-              {/* Final Standings */}
-              <div className="mb-6">
-                <div className="text-xs text-text-muted font-mono mb-3 uppercase tracking-wide">
-                  {'>'} Final Standings:
-                </div>
-                <div className="space-y-2">
-                  {sortedPlayers.map((player, index) => {
-                    const score = room.scores[player.id] || 0;
-                    const isCurrentPlayer = player.id === playerId;
-                    const isWinner = index === 0 && score > 0;
+              {/* Scrollable standings + stats */}
+              <div className="flex-1 min-h-0 overflow-y-auto pb-2">
+                {/* Final Standings */}
+                <div className="mb-4">
+                  <div className="text-xs text-text-muted font-mono mb-3 uppercase tracking-wide">
+                    {'>'} Final Standings:
+                  </div>
+                  <div className="space-y-2">
+                    {sortedPlayers.map((player, index) => {
+                      const score = room.scores[player.id] || 0;
+                      const isCurrentPlayer = player.id === playerId;
+                      const isWinner = index === 0 && score > 0;
 
-                    return (
-                      <div
-                        key={player.id}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          isWinner
-                            ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(0,240,255,0.4)]'
-                            : 'bg-bg-card border-primary/30'
-                        }`}
-                        style={{
-                          animation: `slideInLeft 0.5s ease-out ${index * 0.15}s both`
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className={`text-2xl font-bold ${
-                              isWinner ? 'text-primary' : 'text-text-muted'
-                            }`}>
-                              #{index + 1}
-                            </span>
-                            <div>
-                              <div className={`font-mono uppercase tracking-wide ${
-                                isCurrentPlayer ? 'text-primary font-bold' : ''
+                      return (
+                        <div
+                          key={player.id}
+                          className={`p-4 rounded-lg border-2 transition-all ${
+                            isWinner
+                              ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(0,240,255,0.4)]'
+                              : 'bg-bg-card border-primary/30'
+                          }`}
+                          style={{
+                            animation: `slideInLeft 0.5s ease-out ${index * 0.15}s both`
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className={`text-2xl font-bold ${
+                                isWinner ? 'text-primary' : 'text-text-muted'
                               }`}>
-                                {player.name}
-                                {isCurrentPlayer && ' (you)'}
-                              </div>
-                              {isWinner && (
-                                <div className="text-xs text-primary font-mono">
-                                  Winner
+                                #{index + 1}
+                              </span>
+                              <div>
+                                <div className={`font-mono uppercase tracking-wide ${
+                                  isCurrentPlayer ? 'text-primary font-bold' : ''
+                                }`}>
+                                  {player.name}
+                                  {isCurrentPlayer && ' (you)'}
                                 </div>
-                              )}
+                                {isWinner && (
+                                  <div className="text-xs text-primary font-mono">
+                                    Winner
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className={`text-2xl font-bold font-mono ${
+                              score > 0 ? 'text-success' : 'text-text-muted'
+                            }`}>
+                              {score}
                             </div>
                           </div>
-                          <div className={`text-2xl font-bold font-mono ${
-                            score > 0 ? 'text-success' : 'text-text-muted'
-                          }`}>
-                            {score}
-                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Statistics */}
+                <div className="p-4 bg-bg-card border-2 border-primary/30 rounded-lg">
+                  <div className="text-xs text-text-muted font-mono mb-3 uppercase tracking-wide">
+                    {'>'} Game Stats:
+                  </div>
+                  <div className="space-y-2 font-mono text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-text-muted">Total Rounds:</span>
+                      <span className="text-primary">{room.roundNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-muted">Players:</span>
+                      <span className="text-primary">{room.players.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-muted">Total Points:</span>
+                      <span className="text-primary">
+                        {Object.values(room.scores).reduce((sum, score) => sum + score, 0)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Statistics */}
-              <div className="mb-6 p-4 bg-bg-card border-2 border-primary/30 rounded-lg">
-                <div className="text-xs text-text-muted font-mono mb-3 uppercase tracking-wide">
-                  {'>'} Game Stats:
-                </div>
-                <div className="space-y-2 font-mono text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Total Rounds:</span>
-                    <span className="text-primary">{room.roundNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Players:</span>
-                    <span className="text-primary">{room.players.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-muted">Total Points:</span>
-                    <span className="text-primary">
-                      {Object.values(room.scores).reduce((sum, score) => sum + score, 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Share Button */}
-              <div className="mb-4">
+              {/* Fixed bottom actions */}
+              <div className="shrink-0 pt-4 space-y-3">
                 <ShareButton
                   data={{
                     playerName: room.players.find(p => p.id === playerId)?.name || 'Player',
@@ -641,29 +696,27 @@ export function Playing() {
                     appUrl: window.location.host,
                   }}
                 />
-              </div>
-
-              {/* Host Controls */}
-              {isHost ? (
-                <button
-                  onClick={returnToLobby}
-                  className="w-full bg-primary text-bg-primary font-bold py-4 px-4 rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] font-mono uppercase tracking-wide"
-                >
-                  Return to Lobby
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <div className="text-center text-text-muted text-sm font-mono">
-                    Waiting for host to return to lobby...
-                  </div>
+                {isHost ? (
                   <button
-                    onClick={leaveRoom}
-                    className="w-full bg-bg-card border-2 border-secondary/40 hover:border-secondary text-secondary font-mono py-3 px-4 rounded-lg transition-all uppercase tracking-wide text-sm"
+                    onClick={returnToLobby}
+                    className="w-full bg-primary text-bg-primary font-bold py-4 px-4 rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_30px_rgba(0,240,255,0.6)] font-mono uppercase tracking-wide"
                   >
-                    Leave Game
+                    Return to Lobby
                   </button>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-center text-text-muted text-sm font-mono">
+                      Waiting for host to return to lobby...
+                    </div>
+                    <button
+                      onClick={leaveRoom}
+                      className="w-full bg-bg-card border-2 border-secondary/40 hover:border-secondary text-secondary font-mono py-3 px-4 rounded-lg transition-all uppercase tracking-wide text-sm"
+                    >
+                      Leave Game
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })()}

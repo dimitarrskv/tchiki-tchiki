@@ -246,7 +246,7 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
       if (room.phase !== GamePhase.LOBBY) return;
 
       const limit = payload.roundLimit;
-      if (![3, 5, 10].includes(limit)) return;
+      if (![5, 10, 15].includes(limit)) return;
 
       room.roundLimit = limit;
       io.to(room.code).emit('room:updated', { room: room.toState() });

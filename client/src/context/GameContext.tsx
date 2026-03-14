@@ -296,6 +296,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 }
 
+export { GameContext };
+
 export function useGame(): GameContextValue {
   return useContext(GameContext);
 }
