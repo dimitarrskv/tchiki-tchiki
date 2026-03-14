@@ -53,6 +53,10 @@ export async function playPreview(url: string): Promise<void> {
     await ctx.resume();
     console.log('[audio] ctx resumed, state:', ctx.state);
 
+    if (ctx.state !== 'running') {
+      throw new Error('AudioContext not running (iOS suspended)');
+    }
+
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
     const arrayBuffer = await response.arrayBuffer();

@@ -14,13 +14,12 @@ export function App() {
   const { room } = useGame();
   const { isRejoining } = useSocket();
 
-  // Keep AudioContext alive on iOS — resume on any user tap/click
+  // Keep AudioContext alive on iOS — resume on any user tap/click.
+  // Always call resume() even if state reports 'running', because iOS
+  // can silently interrupt the audio session without changing state.
   useEffect(() => {
     const resume = () => {
-      const ctx = getContext();
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
+      getContext().resume().catch(() => {});
     };
     document.addEventListener('touchstart', resume, { passive: true });
     document.addEventListener('click', resume);
