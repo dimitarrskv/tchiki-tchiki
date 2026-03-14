@@ -1,6 +1,11 @@
 // Hybrid audio playback for maximum mobile compatibility.
 // 1. Try Web Audio API (bypasses iOS silent switch)
 // 2. Fall back to HTML Audio element (works if CORS blocks fetch)
+//
+// Key insight: Web Audio nodes can be scheduled on a suspended context.
+// They queue up and play the instant ctx.resume() completes. So we never
+// need to await resume or guard on ctx.state — just call resume()
+// fire-and-forget during a user gesture and schedule sounds immediately.
 
 let audioContext: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
@@ -26,13 +31,11 @@ function getFallbackAudio(): HTMLAudioElement {
   return fallbackAudio;
 }
 
-/** Call from a click/tap handler to unlock audio on iOS. Returns a promise that resolves when the context is running. */
-export async function unlockAudio(): Promise<void> {
-  // Unlock Web Audio API
+/** Call from a click/tap handler to unlock audio on iOS. */
+export function unlockAudio(): void {
   const ctx = getContext();
-  await ctx.resume().catch(() => {});
+  ctx.resume().catch(() => {});
 
-  // Also unlock HTML Audio element as fallback
   const audio = getFallbackAudio();
   audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
   audio.play().catch(() => {});
@@ -47,7 +50,6 @@ export async function playPreview(url: string): Promise<void> {
   console.log('[audio] playPreview — ctx.state:', ctx.state);
 
   try {
-    // Try Web Audio API (bypasses iOS silent switch)
     await ctx.resume();
     console.log('[audio] ctx resumed, state:', ctx.state);
 
@@ -66,7 +68,6 @@ export async function playPreview(url: string): Promise<void> {
     console.warn('[audio] Web Audio failed, falling back to Audio element:', err);
     usingFallback = true;
 
-    // Fallback to HTML Audio element
     try {
       const audio = getFallbackAudio();
       audio.src = url;
@@ -81,13 +82,11 @@ export async function playPreview(url: string): Promise<void> {
 
 /** Stop playback. */
 export function stopPreview(): void {
-  // Stop Web Audio source
   if (currentSource) {
     try { currentSource.stop(); } catch {}
     currentSource.disconnect();
     currentSource = null;
   }
-  // Stop fallback audio
   if (fallbackAudio) {
     fallbackAudio.pause();
     fallbackAudio.currentTime = 0;
@@ -99,15 +98,12 @@ export function seekPreview(timeSeconds: number): void {
   if (usingFallback && fallbackAudio) {
     fallbackAudio.currentTime = timeSeconds;
   }
-  // Web Audio API: seeking requires recreating the source — skip for simplicity
-  // as sync corrections are rare and small
 }
 
 /** Play a short test tone — two ascending pings to confirm audio works. */
-export async function playTestTone(): Promise<void> {
+export function playTestTone(): void {
   const ctx = getContext();
-  await ctx.resume().catch(() => {});
-
+  ctx.resume().catch(() => {});
   const now = ctx.currentTime;
 
   [0, 0.15].forEach((offset, i) => {
@@ -128,10 +124,9 @@ export async function playTestTone(): Promise<void> {
 }
 
 /** Play a "time's up" impact hit — bass drop + noise crack + sparkle. */
-export async function playTimesUp(): Promise<void> {
+export function playTimesUp(): void {
   const ctx = getContext();
-  await ctx.resume().catch(() => {});
-
+  ctx.resume().catch(() => {});
   const now = ctx.currentTime;
 
   // 1. Sub bass hit — sine wave with sharp pitch drop

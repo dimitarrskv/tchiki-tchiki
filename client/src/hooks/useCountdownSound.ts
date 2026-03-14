@@ -20,10 +20,10 @@ export function useCountdownSound(countdown: number, isCountdownPhase: boolean) 
     }
   }, [countdown, isCountdownPhase]);
 
-  const playTick = async (count: number) => {
+  const playTick = (count: number) => {
     try {
       const ctx = getContext();
-      await ctx.resume().catch(() => {});
+      ctx.resume().catch(() => {});
 
       const now = ctx.currentTime;
 
