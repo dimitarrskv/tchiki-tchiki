@@ -10,7 +10,12 @@
 let audioContext: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
 let gainNode: GainNode | null = null;
-let fallbackAudio: HTMLAudioElement | null = null;
+
+// Separate Audio elements: one for music, one for short SFX.
+// Sharing a single element causes race conditions where a countdown tick
+// overwrites the music src right as playPreview is called.
+let musicAudio: HTMLAudioElement | null = null;
+let sfxAudio: HTMLAudioElement | null = null;
 let usingFallback = false;
 
 export function getContext(): AudioContext {
@@ -23,22 +28,37 @@ export function getContext(): AudioContext {
   return audioContext;
 }
 
-function getFallbackAudio(): HTMLAudioElement {
-  if (!fallbackAudio) {
-    fallbackAudio = new Audio();
-    fallbackAudio.volume = 0.8;
+function getMusicAudio(): HTMLAudioElement {
+  if (!musicAudio) {
+    musicAudio = new Audio();
+    musicAudio.volume = 0.8;
   }
-  return fallbackAudio;
+  return musicAudio;
 }
+
+function getSfxAudio(): HTMLAudioElement {
+  if (!sfxAudio) {
+    sfxAudio = new Audio();
+    sfxAudio.volume = 0.8;
+  }
+  return sfxAudio;
+}
+
+const silentWav = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
 /** Call from a click/tap handler to unlock audio on iOS. */
 export function unlockAudio(): void {
   const ctx = getContext();
   ctx.resume().catch(() => {});
 
-  const audio = getFallbackAudio();
-  audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-  audio.play().catch(() => {});
+  // Unlock both audio elements
+  const music = getMusicAudio();
+  music.src = silentWav;
+  music.play().catch(() => {});
+
+  const sfx = getSfxAudio();
+  sfx.src = silentWav;
+  sfx.play().catch(() => {});
 }
 
 /** Play a preview URL. Uses HTML Audio (reliable on mobile once unlocked). */
@@ -46,7 +66,7 @@ export async function playPreview(url: string): Promise<void> {
   stopPreview();
   usingFallback = true;
 
-  const audio = getFallbackAudio();
+  const audio = getMusicAudio();
   audio.src = url;
   await audio.play();
 }
@@ -58,16 +78,16 @@ export function stopPreview(): void {
     currentSource.disconnect();
     currentSource = null;
   }
-  if (fallbackAudio) {
-    fallbackAudio.pause();
-    fallbackAudio.currentTime = 0;
+  if (musicAudio) {
+    musicAudio.pause();
+    musicAudio.currentTime = 0;
   }
 }
 
 /** Seek to a specific time. */
 export function seekPreview(timeSeconds: number): void {
-  if (usingFallback && fallbackAudio) {
-    fallbackAudio.currentTime = timeSeconds;
+  if (usingFallback && musicAudio) {
+    musicAudio.currentTime = timeSeconds;
   }
 }
 
@@ -113,7 +133,7 @@ function getTestToneUrl(): string {
 
 /** Play a short test tone via HTML Audio — reliable on mobile first tap. */
 export function playTestTone(): void {
-  const audio = getFallbackAudio();
+  const audio = getSfxAudio();
   audio.src = getTestToneUrl();
   audio.play().catch(() => {});
 }
@@ -159,7 +179,7 @@ export function playCountdownTick(freq: number): void {
     }
     wavCache.set(key, makeWav(rate, samples));
   }
-  const audio = getFallbackAudio();
+  const audio = getSfxAudio();
   audio.src = wavCache.get(key)!;
   audio.play().catch(() => {});
 }
@@ -184,7 +204,7 @@ export function playTimesUp(): void {
     }
     wavCache.set('timesup', makeWav(rate, samples));
   }
-  const audio = getFallbackAudio();
+  const audio = getSfxAudio();
   audio.src = wavCache.get('timesup')!;
   audio.play().catch(() => {});
 }

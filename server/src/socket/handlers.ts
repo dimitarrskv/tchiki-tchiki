@@ -43,6 +43,13 @@ function startNewRound(io: TypedServer, room: any): void {
     return;
   }
 
+  // Not enough connected players to form pairs — end the game
+  if (room.connectedPlayerCount < 4) {
+    io.to(room.code).emit('room:error', { message: 'Not enough players to continue — game ended' });
+    endGame(io, room);
+    return;
+  }
+
   const prevGame = activeGames.get(room.code);
   if (prevGame) {
     prevGame.cleanup();
