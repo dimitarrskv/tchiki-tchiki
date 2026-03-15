@@ -41,47 +41,14 @@ export function unlockAudio(): void {
   audio.play().catch(() => {});
 }
 
-/** Play a preview URL. Tries Web Audio API first, falls back to Audio element. */
+/** Play a preview URL. Uses HTML Audio (reliable on mobile once unlocked). */
 export async function playPreview(url: string): Promise<void> {
   stopPreview();
-  usingFallback = false;
+  usingFallback = true;
 
-  const ctx = getContext();
-  console.log('[audio] playPreview — ctx.state:', ctx.state);
-
-  try {
-    await ctx.resume();
-    console.log('[audio] ctx resumed, state:', ctx.state);
-
-    if (ctx.state !== 'running') {
-      throw new Error('AudioContext not running (iOS suspended)');
-    }
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-    const arrayBuffer = await response.arrayBuffer();
-    console.log('[audio] fetched', arrayBuffer.byteLength, 'bytes');
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-
-    currentSource = ctx.createBufferSource();
-    currentSource.buffer = audioBuffer;
-    currentSource.connect(gainNode!);
-    currentSource.start();
-    console.log('[audio] Web Audio playing');
-  } catch (err) {
-    console.warn('[audio] Web Audio failed, falling back to Audio element:', err);
-    usingFallback = true;
-
-    try {
-      const audio = getFallbackAudio();
-      audio.src = url;
-      await audio.play();
-      console.log('[audio] HTML Audio fallback playing');
-    } catch (fallbackErr) {
-      console.error('[audio] Both playback methods failed:', fallbackErr);
-      throw fallbackErr;
-    }
-  }
+  const audio = getFallbackAudio();
+  audio.src = url;
+  await audio.play();
 }
 
 /** Stop playback. */
