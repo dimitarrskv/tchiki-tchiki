@@ -115,7 +115,10 @@ export class MusicPairs extends BaseGame {
           trackArt: this.state.albumArts.get(trackId) || '',
         };
 
-        console.log(`Sending track to ${player.name}:`, td.name);
+        if (!payload.previewUrl) {
+          console.warn(`⚠ No preview URL for "${td.name}" by ${td.artist} — ${player.name} will hear silence`);
+        }
+        console.log(`Sending track to ${player.name}:`, td.name, payload.previewUrl ? '(has preview)' : '(NO PREVIEW)');
         this.emitToPlayer(player.socketId, 'game:play', payload);
       } else {
         console.warn(`Player ${player.name} not found in any pair`);

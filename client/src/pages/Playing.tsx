@@ -16,7 +16,7 @@ interface TrackInfo {
 }
 
 export function Playing() {
-  const { room, playerId, phaseData, pairResults, isHost, leaveRoom, returnToLobby } = useGame();
+  const { room, playerId, phaseData, pairResults, isHost, leaveRoom, returnToLobby, error } = useGame();
   const { socket } = useSocket();
   const [countdown, setCountdown] = useState<number>(3);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -293,6 +293,11 @@ export function Playing() {
               >
                 Who has the same track?
               </p>
+              {error && error.toLowerCase().includes('preview') && (
+                <div className="text-xs font-mono text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded px-3 py-1.5">
+                  Audio unavailable for this round — guess by watching others!
+                </div>
+              )}
             </div>
 
             <style>{`
@@ -371,7 +376,10 @@ export function Playing() {
                 animation: 'revealBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
               }}
             >
-              <div className="text-4xl font-bold mb-2 text-primary neon-text">
+              <div
+                className="text-4xl font-bold mb-4 text-primary"
+                style={{ textShadow: '0 0 10px var(--color-primary)' }}
+              >
                 {room.phase === GamePhase.REVEAL ? 'Reveal' : 'Results'}
               </div>
               <p className="text-text-muted font-mono text-sm">

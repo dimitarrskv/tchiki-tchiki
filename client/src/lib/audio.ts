@@ -47,6 +47,11 @@ export async function playPreview(url: string): Promise<void> {
   usingFallback = true;
   musicPlaying = true;
 
+  // Resume AudioContext in case iOS suspended it between rounds
+  if (audioContext && audioContext.state === 'suspended') {
+    await audioContext.resume().catch(() => {});
+  }
+
   const audio = getAudio();
   audio.src = url;
   audio.load();
@@ -61,7 +66,13 @@ export async function playPreview(url: string): Promise<void> {
     const cleanup = () => {
       audio.removeEventListener('playing', onPlay);
       audio.removeEventListener('error', onError);
+      clearTimeout(timeout);
     };
+    // Timeout: if 'playing' event doesn't fire within 8s, reject
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Audio playback timed out'));
+    }, 8000);
     audio.addEventListener('playing', onPlay, { once: true });
     audio.addEventListener('error', onError, { once: true });
     audio.play().catch(err => { cleanup(); reject(err); });
