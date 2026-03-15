@@ -1,22 +1,17 @@
-// Hybrid audio playback for maximum mobile compatibility.
-// 1. Try Web Audio API (bypasses iOS silent switch)
-// 2. Fall back to HTML Audio element (works if CORS blocks fetch)
+// HTML Audio playback for maximum mobile compatibility.
+// A single shared Audio element is used for all playback (music + SFX).
+// Mobile browsers (especially iOS Safari) only allow one active audio
+// element at a time, so using separate elements breaks music playback.
 //
-// On iOS Safari, always await ctx.resume() before scheduling Web Audio
-// nodes. Scheduling on a suspended context is unreliable — currentTime
-// may jump past the scheduled times once resume completes, causing
-// sounds to be silently skipped.
+// To prevent SFX (countdown ticks, times-up) from overwriting the music
+// src mid-playback, SFX calls are skipped while music is playing.
 
 let audioContext: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
 let gainNode: GainNode | null = null;
-
-// Separate Audio elements: one for music, one for short SFX.
-// Sharing a single element causes race conditions where a countdown tick
-// overwrites the music src right as playPreview is called.
-let musicAudio: HTMLAudioElement | null = null;
-let sfxAudio: HTMLAudioElement | null = null;
+let sharedAudio: HTMLAudioElement | null = null;
 let usingFallback = false;
+let musicPlaying = false;
 
 export function getContext(): AudioContext {
   if (!audioContext) {
@@ -28,66 +23,53 @@ export function getContext(): AudioContext {
   return audioContext;
 }
 
-function getMusicAudio(): HTMLAudioElement {
-  if (!musicAudio) {
-    musicAudio = new Audio();
-    musicAudio.volume = 0.8;
+function getAudio(): HTMLAudioElement {
+  if (!sharedAudio) {
+    sharedAudio = new Audio();
+    sharedAudio.volume = 0.8;
   }
-  return musicAudio;
+  return sharedAudio;
 }
-
-function getSfxAudio(): HTMLAudioElement {
-  if (!sfxAudio) {
-    sfxAudio = new Audio();
-    sfxAudio.volume = 0.8;
-  }
-  return sfxAudio;
-}
-
-const silentWav = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
 /** Call from a click/tap handler to unlock audio on iOS. */
 export function unlockAudio(): void {
   const ctx = getContext();
   ctx.resume().catch(() => {});
 
-  // Unlock both audio elements
-  const music = getMusicAudio();
-  music.src = silentWav;
-  music.play().catch(() => {});
-
-  const sfx = getSfxAudio();
-  sfx.src = silentWav;
-  sfx.play().catch(() => {});
+  const audio = getAudio();
+  audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  audio.play().catch(() => {});
 }
 
 /** Play a preview URL. Uses HTML Audio (reliable on mobile once unlocked). */
 export async function playPreview(url: string): Promise<void> {
   stopPreview();
   usingFallback = true;
+  musicPlaying = true;
 
-  const audio = getMusicAudio();
+  const audio = getAudio();
   audio.src = url;
   await audio.play();
 }
 
 /** Stop playback. */
 export function stopPreview(): void {
+  musicPlaying = false;
   if (currentSource) {
     try { currentSource.stop(); } catch {}
     currentSource.disconnect();
     currentSource = null;
   }
-  if (musicAudio) {
-    musicAudio.pause();
-    musicAudio.currentTime = 0;
+  if (sharedAudio) {
+    sharedAudio.pause();
+    sharedAudio.currentTime = 0;
   }
 }
 
 /** Seek to a specific time. */
 export function seekPreview(timeSeconds: number): void {
-  if (usingFallback && musicAudio) {
-    musicAudio.currentTime = timeSeconds;
+  if (usingFallback && sharedAudio) {
+    sharedAudio.currentTime = timeSeconds;
   }
 }
 
@@ -133,7 +115,8 @@ function getTestToneUrl(): string {
 
 /** Play a short test tone via HTML Audio — reliable on mobile first tap. */
 export function playTestTone(): void {
-  const audio = getSfxAudio();
+  if (musicPlaying) return;
+  const audio = getAudio();
   audio.src = getTestToneUrl();
   audio.play().catch(() => {});
 }
@@ -163,6 +146,7 @@ function makeWav(rate: number, samples: Float32Array): string {
 
 /** Play a countdown tick at the given frequency via HTML Audio. */
 export function playCountdownTick(freq: number): void {
+  if (musicPlaying) return;
   const key = `tick-${freq}`;
   if (!wavCache.has(key)) {
     const rate = 22050;
@@ -179,7 +163,7 @@ export function playCountdownTick(freq: number): void {
     }
     wavCache.set(key, makeWav(rate, samples));
   }
-  const audio = getSfxAudio();
+  const audio = getAudio();
   audio.src = wavCache.get(key)!;
   audio.play().catch(() => {});
 }
@@ -204,7 +188,8 @@ export function playTimesUp(): void {
     }
     wavCache.set('timesup', makeWav(rate, samples));
   }
-  const audio = getSfxAudio();
+  // timesUp plays after stopPreview() clears musicPlaying, so no guard needed
+  const audio = getAudio();
   audio.src = wavCache.get('timesup')!;
   audio.play().catch(() => {});
 }
