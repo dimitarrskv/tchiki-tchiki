@@ -49,7 +49,23 @@ export async function playPreview(url: string): Promise<void> {
 
   const audio = getAudio();
   audio.src = url;
-  await audio.play();
+  audio.load();
+
+  await new Promise<void>((resolve, reject) => {
+    const onPlay = () => { cleanup(); resolve(); };
+    const onError = () => {
+      cleanup();
+      const e = audio.error;
+      reject(new Error(`Audio load failed: ${e?.message || `code ${e?.code}`}`));
+    };
+    const cleanup = () => {
+      audio.removeEventListener('playing', onPlay);
+      audio.removeEventListener('error', onError);
+    };
+    audio.addEventListener('playing', onPlay, { once: true });
+    audio.addEventListener('error', onError, { once: true });
+    audio.play().catch(err => { cleanup(); reject(err); });
+  });
 }
 
 /** Stop playback. */
