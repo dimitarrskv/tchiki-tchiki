@@ -159,14 +159,14 @@ export function Playing() {
   return (
     <MobileShell>
       <Header />
-      <div className={`flex-1 flex flex-col items-center text-center px-6 min-h-0 ${
+      <div className={`flex-1 flex flex-col items-center text-center min-h-0 ${
         room.phase === GamePhase.COUNTDOWN ? 'justify-center' : ''
       }`}>
         {room.phase === GamePhase.COUNTDOWN && (
           <div className="w-full" onClick={() => { unlockAudio(); setAudioReady(true); }}>
             {/* Round Number */}
             <div className="mb-4 text-text-muted font-mono text-sm uppercase tracking-wide">
-              Round {room.roundNumber} / {room.roundLimit}
+              Round {room.roundNumber} / {room.roundLimit ?? 5}
             </div>
 
             {/* Animated Countdown Number */}
@@ -270,7 +270,7 @@ export function Playing() {
           <div className="w-full relative pb-2 flex-1 flex flex-col min-h-0">
             {/* Round Number */}
             <div className="mb-2 text-text-muted font-mono text-sm uppercase tracking-wide relative z-10">
-              Round {room.roundNumber} / {room.roundLimit}
+              Round {room.roundNumber} / {room.roundLimit ?? 5}
             </div>
 
             <div
@@ -376,9 +376,9 @@ export function Playing() {
               <p className="text-text-muted font-mono text-sm">
                 {room.phase === GamePhase.REVEAL
                   ? 'pairs revealed'
-                  : room.roundNumber >= room.roundLimit
+                  : room.roundNumber >= (room.roundLimit ?? 5)
                     ? `final round — results incoming`
-                    : `Round ${room.roundNumber} / ${room.roundLimit}${nextRoundIn != null && nextRoundIn > 0 ? ` — Next in ${nextRoundIn}s...` : ' — Starting...'}`}
+                    : `Round ${room.roundNumber} / ${room.roundLimit ?? 5}${nextRoundIn != null && nextRoundIn > 0 ? ` — Next in ${nextRoundIn}s...` : ' — Starting...'}`}
               </p>
             </div>
 
@@ -434,7 +434,7 @@ export function Playing() {
                 <div
                   ref={pairsScrollRef}
                   onScroll={handlePairsScroll}
-                  className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-6 px-6 pr-12"
+                  className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide"
                 >
                   {sortedIndices.map((originalIndex) => {
                     const pair = pairResults.pairs[originalIndex];

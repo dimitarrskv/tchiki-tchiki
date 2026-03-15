@@ -164,7 +164,7 @@ export function Lobby() {
                     key={n}
                     onClick={() => setRoundLimit(n)}
                     className={`flex-1 py-2 rounded-lg font-mono text-sm transition-all border-2 ${
-                      room.roundLimit === n
+                      (room.roundLimit ?? 5) === n
                         ? 'bg-primary/20 border-primary text-primary'
                         : 'bg-bg-card border-primary/30 text-text-muted hover:border-primary/50'
                     }`}
@@ -191,7 +191,7 @@ export function Lobby() {
             )}
           </>
         ) : (
-          <div className="bg-bg-card border-2 border-primary/30 rounded-lg py-4 px-6 text-center">
+          <div className="bg-bg-card border-2 border-primary/30 rounded-lg py-4 px-4 text-center">
             <div className="text-text-muted font-mono uppercase tracking-wide">
               {'>> Waiting for host...'}
             </div>
