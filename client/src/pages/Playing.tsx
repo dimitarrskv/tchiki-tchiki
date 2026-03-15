@@ -126,7 +126,8 @@ export function Playing() {
   // Reset state when phase changes
   useEffect(() => {
     if (room?.phase === GamePhase.PLAYING) {
-      setSelectedPartner(null);
+      // Restore claim from rejoin sync, or reset to null for fresh round
+      setSelectedPartner(phaseData?.restoredClaimPartnerId || null);
     }
     if (room?.phase !== GamePhase.COUNTDOWN) {
       setCountdown(0);

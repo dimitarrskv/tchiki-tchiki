@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Room } from './Room';
 import { Player } from './Player';
 
-const GHOST_TIMEOUT_MS = 30000; // 30 seconds
+const GHOST_TIMEOUT_MS = 120_000; // 2 minutes (accommodates mobile backgrounding)
 const ROOM_CLEANUP_INTERVAL_MS = 60000; // 1 minute
 
 function generateRoomCode(): string {
@@ -84,7 +84,7 @@ export class RoomManager {
     player.disconnect();
     this.socketToRoom.delete(socketId);
 
-    console.log(`${player.name} disconnected from room ${room.code} (ghost for 30s)`);
+    console.log(`${player.name} disconnected from room ${room.code} (ghost for 2min)`);
     return result;
   }
 

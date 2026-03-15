@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { Room } from '../rooms/Room';
-import { GamePhase, ClientToServerEvents, ServerToClientEvents } from 'shared';
+import { GamePhase, GameSyncState, ClientToServerEvents, ServerToClientEvents } from 'shared';
 
 export type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -21,6 +21,8 @@ export abstract class BaseGame {
   protected room: Room;
   protected config: GameConfig;
   protected timers: NodeJS.Timeout[] = [];
+  protected playStartedAt: number | null = null;
+  protected phaseEnteredAt: number | null = null;
   public onNextRound?: () => void;
 
   constructor(io: TypedServer, room: Room, config?: Partial<GameConfig>) {
@@ -31,6 +33,7 @@ export abstract class BaseGame {
 
   abstract start(): void;
   abstract handleClaimMatch(playerId: string, partnerId: string): void;
+  abstract getStateForPlayer(playerId: string): GameSyncState | null;
 
   protected emit(event: string, data?: any): void {
     this.io.to(this.room.code).emit(event as any, data);
@@ -42,6 +45,7 @@ export abstract class BaseGame {
 
   protected setPhase(phase: GamePhase, data?: any): void {
     this.room.phase = phase;
+    this.phaseEnteredAt = Date.now();
     this.emit('game:phaseChange', { phase, data });
     this.emit('room:updated', { room: this.room.toState() });
   }

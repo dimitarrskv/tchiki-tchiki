@@ -5,6 +5,7 @@ import { Home } from './pages/Home';
 import { Lobby } from './pages/Lobby';
 import { Playing } from './pages/Playing';
 import { ConnectionStatus } from './components/ConnectionStatus';
+import { ReconnectingOverlay } from './components/ReconnectingOverlay';
 import { MobileShell } from './components/layout/MobileShell';
 import { useWakeLock } from './hooks/useWakeLock';
 import { getContext } from './lib/audio';
@@ -84,6 +85,7 @@ export function App() {
   return (
     <>
       <ConnectionStatus />
+      <ReconnectingOverlay />
       {content}
     </>
   );

@@ -61,6 +61,25 @@ export interface PairResult {
   trackMeta: TrackMeta[]; // Metadata per pair, aligned with trackUris
 }
 
+// ─── Game State Sync (for reconnection) ─────────────────────
+
+export interface GameSyncState {
+  phase: GamePhase;
+  // PLAYING phase
+  trackUri?: string;
+  previewUrl?: string | null;
+  trackName?: string;
+  trackArtist?: string;
+  trackArt?: string;
+  serverTimestamp?: number;
+  listenDurationMs?: number;
+  myClaimPartnerId?: string | null;
+  // REVEAL / RESULTS phase
+  pairResults?: PairResult | null;
+  phaseData?: any;
+  phaseEnteredAt?: number;
+}
+
 // ─── Socket Event Payloads ───────────────────────────────────
 
 // Client → Server
@@ -110,7 +129,7 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   'room:created': (payload: { code: string; room: RoomState }) => void;
   'room:joined': (payload: { playerId: string; room: RoomState }) => void;
-  'room:rejoined': (payload: { playerId: string; room: RoomState }) => void;
+  'room:rejoined': (payload: { playerId: string; room: RoomState; gameSync?: GameSyncState }) => void;
   'room:playerJoined': (payload: { player: PlayerInfo }) => void;
   'room:playerLeft': (payload: { playerId: string }) => void;
   'room:playerReconnected': (payload: { playerId: string }) => void;

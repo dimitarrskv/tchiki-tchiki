@@ -116,11 +116,18 @@ export function registerSocketHandlers(io: TypedServer, roomManager: RoomManager
 
         const { room, player } = result;
         socket.join(room.code);
-        socket.emit('room:rejoined', { playerId: player.id, room: room.toState() });
+
+        // Build game sync state if game is active
+        const game = activeGames.get(room.code);
+        const gameSync = game && room.phase !== GamePhase.LOBBY && room.phase !== GamePhase.GAME_OVER
+          ? game.getStateForPlayer(player.id) ?? undefined
+          : undefined;
+
+        socket.emit('room:rejoined', { playerId: player.id, room: room.toState(), gameSync });
         socket.to(room.code).emit('room:playerReconnected', { playerId: player.id });
         io.to(room.code).emit('room:updated', { room: room.toState() });
 
-        console.log(`${player.name} rejoined room ${room.code}`);
+        console.log(`${player.name} rejoined room ${room.code} (phase: ${room.phase})`);
       } catch (err: any) {
         socket.emit('room:error', { message: err.message || 'Failed to rejoin room' });
       }

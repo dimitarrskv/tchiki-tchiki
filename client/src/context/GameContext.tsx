@@ -3,6 +3,7 @@ import { useSocket } from './SocketContext';
 import { saveSession, clearSession } from '../lib/sessionStorage';
 import { playPreview, stopPreview, seekPreview, playTimesUp } from '../lib/audio';
 import type { RoomState, PairResult, TrackMeta } from 'shared/src/types';
+import { GamePhase } from 'shared/src/types';
 
 interface GameContextValue {
   room: RoomState | null;
@@ -94,11 +95,57 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    socket.on('room:rejoined', ({ playerId, room }) => {
-      console.log('Successfully rejoined room');
+    socket.on('room:rejoined', ({ playerId, room, gameSync }) => {
+      console.log('Successfully rejoined room, phase:', room.phase);
       setRoom(room);
       setPlayerId(playerId);
       setError(null);
+
+      if (gameSync) {
+        // Restore pair results for REVEAL/RESULTS
+        if (gameSync.pairResults) {
+          setPairResults(gameSync.pairResults);
+        }
+
+        // Restore PLAYING phase: music + claim + timer sync
+        if (gameSync.phase === GamePhase.PLAYING && gameSync.previewUrl && gameSync.trackUri) {
+          setCurrentTrackUri(gameSync.trackUri);
+          setCurrentTrackMeta({
+            name: gameSync.trackName || '',
+            artist: gameSync.trackArtist || '',
+            imageUrl: gameSync.trackArt || '',
+          });
+
+          setPhaseData({
+            durationMs: gameSync.listenDurationMs,
+            serverTimestamp: gameSync.serverTimestamp,
+            restoredClaimPartnerId: gameSync.myClaimPartnerId || null,
+          });
+
+          // Play and seek to correct position
+          stopPreview();
+          playPreview(gameSync.previewUrl).then(() => {
+            const elapsedMs = Date.now() - (gameSync.serverTimestamp || Date.now());
+            if (elapsedMs > 500) {
+              seekPreview(elapsedMs / 1000);
+            }
+          }).catch(err => {
+            console.error('Failed to resume music on rejoin:', err);
+          });
+        }
+
+        // Restore RESULTS phase with remaining auto-advance time
+        if (gameSync.phase === GamePhase.RESULTS && gameSync.phaseEnteredAt) {
+          const elapsed = Date.now() - gameSync.phaseEnteredAt;
+          const remaining = Math.max(0, 8000 - elapsed);
+          setPhaseData({ autoAdvanceMs: remaining });
+        }
+
+        // Restore REVEAL phase data
+        if (gameSync.phase === GamePhase.REVEAL && gameSync.phaseData) {
+          setPhaseData(gameSync.phaseData);
+        }
+      }
     });
 
     socket.on('room:playerJoined', ({ player }) => {

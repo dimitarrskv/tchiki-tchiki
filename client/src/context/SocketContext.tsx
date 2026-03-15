@@ -4,7 +4,7 @@ import { getSession, clearSession } from '../lib/sessionStorage';
 
 type ConnectionState = 'connected' | 'disconnected' | 'reconnecting' | 'reconnected';
 
-const REJOIN_TIMEOUT_MS = 5000;
+const REJOIN_TIMEOUT_MS = 15_000;
 
 interface SocketContextValue {
   socket: TypedSocket | null;
@@ -135,8 +135,17 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       connectionStateRef.current = 'disconnected';
     };
 
+    // Reconnect when app returns from background (iOS/Android kill WebSocket)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !s.connected) {
+        console.log('Tab became visible, reconnecting...');
+        s.connect();
+      }
+    };
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       s.off('connect', onConnect);
@@ -147,6 +156,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       s.off('room:error', onRoomError);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (rejoinTimeoutRef.current) clearTimeout(rejoinTimeoutRef.current);
       disconnectSocket();
     };

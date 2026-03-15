@@ -1,6 +1,6 @@
 import { BaseGame, TypedServer } from './BaseGame';
 import { Room } from '../rooms/Room';
-import { GamePhase } from 'shared';
+import { GamePhase, GameSyncState } from 'shared';
 import { getUniqueRandomTrackData, TrackData } from '../spotify/tracks';
 import { fetchPreviewsForTracks } from '../spotify/api';
 
@@ -95,6 +95,7 @@ export class MusicPairs extends BaseGame {
     console.log(`Starting playing phase with ${players.length} connected players`);
 
     const serverTimestamp = Date.now();
+    this.playStartedAt = serverTimestamp;
 
     for (const player of players) {
       const pairIndex = this.state.pairs.findIndex(
@@ -221,6 +222,73 @@ export class MusicPairs extends BaseGame {
         }
       }, 8000);
     }, 5000);
+  }
+
+  getStateForPlayer(playerId: string): GameSyncState | null {
+    if (!this.state) return null;
+
+    const phase = this.room.phase;
+    const sync: GameSyncState = { phase };
+
+    if (phase === GamePhase.PLAYING) {
+      const pairIndex = this.state.pairs.findIndex(
+        pair => pair[0] === playerId || pair[1] === playerId
+      );
+
+      if (pairIndex >= 0) {
+        const td = this.state.trackData[pairIndex];
+        const trackId = td.uri.replace('spotify:track:', '');
+
+        sync.trackUri = td.uri;
+        sync.previewUrl = this.state.previewUrls.get(trackId) || null;
+        sync.trackName = td.name;
+        sync.trackArtist = td.artist;
+        sync.trackArt = this.state.albumArts.get(trackId) || '';
+        sync.serverTimestamp = this.playStartedAt!;
+        sync.listenDurationMs = this.config.listenDurationMs;
+      }
+
+      sync.myClaimPartnerId = this.state.claims.get(playerId) || null;
+    }
+
+    if (phase === GamePhase.REVEAL || phase === GamePhase.RESULTS) {
+      const matchedCorrectly: [string, string][] = [];
+      const correctGuesses = new Set<string>();
+
+      for (const [p1, p2] of this.state.pairs) {
+        if (p1 === p2) continue;
+        const p1Claim = this.state.claims.get(p1);
+        const p2Claim = this.state.claims.get(p2);
+        if (p1Claim === p2) correctGuesses.add(p1);
+        if (p2Claim === p1) correctGuesses.add(p2);
+        if (p1Claim === p2 && p2Claim === p1) matchedCorrectly.push([p1, p2]);
+      }
+
+      const trackMeta = this.state.trackData.map(td => {
+        const trackId = td.uri.replace('spotify:track:', '');
+        return {
+          name: td.name,
+          artist: td.artist,
+          imageUrl: this.state!.albumArts.get(trackId) || '',
+        };
+      });
+
+      sync.pairResults = {
+        pairs: this.state.pairs,
+        matchedCorrectly,
+        correctGuesses: Array.from(correctGuesses),
+        trackUris: this.state.trackData.map(t => t.uri),
+        trackMeta,
+      };
+
+      sync.phaseEnteredAt = this.phaseEnteredAt!;
+
+      if (phase === GamePhase.RESULTS) {
+        sync.phaseData = { autoAdvanceMs: 8000 };
+      }
+    }
+
+    return sync;
   }
 
 }
