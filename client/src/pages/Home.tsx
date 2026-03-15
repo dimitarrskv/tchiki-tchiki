@@ -161,6 +161,12 @@ export function Home() {
               <span className="text-primary/50">[MODE]</span>
               <span className="text-success">+ Audio ready (30s preview clips)</span>
             </div>
+            {roomCode && (
+              <div className="flex items-start gap-2">
+                <span className="text-primary/50">[ROOM]</span>
+                <span className="text-success">+ Joining room <span className="text-primary font-bold tracking-wider">{roomCode}</span></span>
+              </div>
+            )}
             {error && (
               <div className="flex items-start gap-2 mt-2 pt-2 border-t border-secondary/20">
                 <span className="text-secondary">[ERR]</span>
@@ -198,15 +204,6 @@ export function Home() {
         {roomCode ? (
           /* Arrived via invitation link / QR scan */
           <div className="space-y-3">
-            <div className="bg-bg-card border-2 border-secondary/50 rounded-lg px-4 py-3 text-center">
-              <div className="text-text-muted text-[10px] uppercase tracking-wider mb-1">Joining Room</div>
-              <div
-                className="text-2xl font-mono tracking-[0.5em] text-primary"
-                style={{ textShadow: '0 0 10px rgba(0, 240, 255, 0.5)' }}
-              >
-                {roomCode}
-              </div>
-            </div>
             <button
               onClick={handleJoin}
               disabled={!name.trim() || !isConnected}
