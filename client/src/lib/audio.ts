@@ -118,65 +118,73 @@ export function playTestTone(): void {
   audio.play().catch(() => {});
 }
 
-/** Play a "time's up" impact hit — bass drop + noise crack + sparkle. */
-export function playTimesUp(): void {
-  const ctx = getContext();
-  ctx.resume().then(() => {
-    const now = ctx.currentTime;
+// Cache for generated sound WAVs
+const wavCache = new Map<string, string>();
 
-    // 1. Sub bass hit — sine wave with sharp pitch drop
-    const sub = ctx.createOscillator();
-    sub.type = 'sine';
-    sub.frequency.setValueAtTime(150, now);
-    sub.frequency.exponentialRampToValueAtTime(35, now + 0.2);
+/** Generate a WAV data URI from raw sample data. */
+function makeWav(rate: number, samples: Float32Array): string {
+  const len = samples.length;
+  const buf = new ArrayBuffer(44 + len * 2);
+  const v = new DataView(buf);
+  const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + len * 2, true); w(8, 'WAVE');
+  w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, len * 2, true);
+  for (let i = 0; i < len; i++) {
+    v.setInt16(44 + i * 2, (Math.max(-1, Math.min(1, samples[i])) * 32767) | 0, true);
+  }
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
 
-    const subGain = ctx.createGain();
-    subGain.gain.setValueAtTime(0.4, now);
-    subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-
-    sub.connect(subGain);
-    subGain.connect(ctx.destination);
-    sub.start(now);
-    sub.stop(now + 0.4);
-
-    // 2. Noise burst for the "crack" — white noise through a bandpass
-    const bufferSize = ctx.sampleRate * 0.15;
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+/** Play a countdown tick at the given frequency via HTML Audio. */
+export function playCountdownTick(freq: number): void {
+  const key = `tick-${freq}`;
+  if (!wavCache.has(key)) {
+    const rate = 22050;
+    const len = (rate * 0.18) | 0;
+    const samples = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
+      const t = i / rate;
+      // Triangle wave main tone with pitch sweep down
+      const mainFreq = freq * 1.5 * Math.pow(freq / (freq * 1.5), t / 0.06);
+      const main = ((((mainFreq * t) % 1) * 2 - 1)) * Math.exp(-t * 20) * 0.35;
+      // Sine sub for body
+      const sub = Math.sin(2 * Math.PI * freq * 0.5 * t) * Math.exp(-t * 15) * 0.15;
+      samples[i] = main + sub;
     }
+    wavCache.set(key, makeWav(rate, samples));
+  }
+  const audio = getFallbackAudio();
+  audio.src = wavCache.get(key)!;
+  audio.play().catch(() => {});
+}
 
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuffer;
-
-    const noiseBand = ctx.createBiquadFilter();
-    noiseBand.type = 'bandpass';
-    noiseBand.frequency.value = 4000;
-    noiseBand.Q.value = 0.8;
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.25, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-
-    noise.connect(noiseBand);
-    noiseBand.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noise.start(now);
-
-    // 3. High sparkle — quick sine ping for sci-fi feel
-    const ping = ctx.createOscillator();
-    ping.type = 'sine';
-    ping.frequency.setValueAtTime(2400, now);
-    ping.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-
-    const pingGain = ctx.createGain();
-    pingGain.gain.setValueAtTime(0.12, now);
-    pingGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-
-    ping.connect(pingGain);
-    pingGain.connect(ctx.destination);
-    ping.start(now);
-    ping.stop(now + 0.2);
-  }).catch(() => {});
+/** Play a "time's up" impact hit via HTML Audio. */
+export function playTimesUp(): void {
+  if (!wavCache.has('timesup')) {
+    const rate = 22050;
+    const len = (rate * 0.4) | 0;
+    const samples = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
+      const t = i / rate;
+      // Sub bass hit — sine with pitch drop
+      const subFreq = 150 * Math.pow(35 / 150, Math.min(1, t / 0.2));
+      const sub = Math.sin(2 * Math.PI * subFreq * t) * Math.exp(-t * 5) * 0.4;
+      // Noise crack
+      const noise = t < 0.08 ? (Math.random() * 2 - 1) * Math.exp(-t * 30) * 0.25 : 0;
+      // Sparkle ping
+      const pingFreq = 2400 * Math.pow(800 / 2400, Math.min(1, t / 0.15));
+      const ping = t < 0.2 ? Math.sin(2 * Math.PI * pingFreq * t) * Math.exp(-t * 12) * 0.12 : 0;
+      samples[i] = sub + noise + ping;
+    }
+    wavCache.set('timesup', makeWav(rate, samples));
+  }
+  const audio = getFallbackAudio();
+  audio.src = wavCache.get('timesup')!;
+  audio.play().catch(() => {});
 }
