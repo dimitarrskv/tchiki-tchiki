@@ -192,8 +192,6 @@ export class MusicPairs extends BaseGame {
       this.room.scores.set(player2, current2 + 1);
     }
 
-    this.setPhase(GamePhase.REVEAL);
-
     const trackMeta = this.state.trackData.map(td => {
       const trackId = td.uri.replace('spotify:track:', '');
       return {
@@ -215,16 +213,15 @@ export class MusicPairs extends BaseGame {
       scores: Object.fromEntries(this.room.scores),
     });
 
-    this.scheduleTimeout(() => {
-      this.setPhase(GamePhase.RESULTS, { autoAdvanceMs: 8000 });
+    // Go straight to RESULTS (skip REVEAL delay)
+    this.setPhase(GamePhase.RESULTS, { autoAdvanceMs: 3000 });
 
-      // Auto-advance to next round
-      this.scheduleTimeout(() => {
-        if (this.room.phase === GamePhase.RESULTS && this.onNextRound) {
-          this.onNextRound();
-        }
-      }, 8000);
-    }, 5000);
+    // Auto-advance to next round
+    this.scheduleTimeout(() => {
+      if (this.room.phase === GamePhase.RESULTS && this.onNextRound) {
+        this.onNextRound();
+      }
+    }, 3000);
   }
 
   getStateForPlayer(playerId: string): GameSyncState | null {
@@ -287,7 +284,7 @@ export class MusicPairs extends BaseGame {
       sync.phaseEnteredAt = this.phaseEnteredAt!;
 
       if (phase === GamePhase.RESULTS) {
-        sync.phaseData = { autoAdvanceMs: 8000 };
+        sync.phaseData = { autoAdvanceMs: 3000 };
       }
     }
 

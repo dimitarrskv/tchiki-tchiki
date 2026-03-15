@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from './context/GameContext';
 import { useSocket } from './context/SocketContext';
 import { Home } from './pages/Home';
@@ -8,25 +8,27 @@ import { ConnectionStatus } from './components/ConnectionStatus';
 import { ReconnectingOverlay } from './components/ReconnectingOverlay';
 import { MobileShell } from './components/layout/MobileShell';
 import { useWakeLock } from './hooks/useWakeLock';
-import { getContext } from './lib/audio';
+import { unlockAudio } from './lib/audio';
 import { GamePhase } from 'shared/src/types';
 
 export function App() {
   const { room } = useGame();
   const { isRejoining } = useSocket();
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
-  // Keep AudioContext alive on iOS — resume on any user tap/click.
-  // Always call resume() even if state reports 'running', because iOS
-  // can silently interrupt the audio session without changing state.
+  // Unlock audio + AudioContext on any user tap/click.
+  // This also tracks whether the user has tapped at least once this session,
+  // so we can gate active game phases behind an audio-unlock interstitial.
   useEffect(() => {
-    const resume = () => {
-      getContext().resume().catch(() => {});
+    const handleGesture = () => {
+      unlockAudio();
+      setAudioUnlocked(true);
     };
-    document.addEventListener('touchstart', resume, { passive: true });
-    document.addEventListener('click', resume);
+    document.addEventListener('touchstart', handleGesture, { passive: true });
+    document.addEventListener('click', handleGesture);
     return () => {
-      document.removeEventListener('touchstart', resume);
-      document.removeEventListener('click', resume);
+      document.removeEventListener('touchstart', handleGesture);
+      document.removeEventListener('click', handleGesture);
     };
   }, []);
 
@@ -41,10 +43,52 @@ export function App() {
 
   useWakeLock(!!isPlaying);
 
+  // Audio unlock gate: after a page refresh mid-game, iOS requires a user
+  // gesture before audio can play. During normal flow, lobby taps handle this.
+  // On rejoin into an active phase, show a "tap to continue" interstitial.
+  const activeGamePhase = room?.phase && [
+    GamePhase.COUNTDOWN,
+    GamePhase.PLAYING,
+    GamePhase.REVEAL,
+    GamePhase.RESULTS,
+  ].includes(room.phase);
+  const needsAudioGate = !audioUnlocked && activeGamePhase && !isRejoining;
+
   let content;
 
+  if (needsAudioGate) {
+    content = (
+      <MobileShell>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center p-6">
+            <div
+              className="text-4xl font-bold mb-4 text-primary"
+              style={{ textShadow: '0 0 15px rgba(0, 240, 255, 0.5)' }}
+            >
+              Tap to Rejoin
+            </div>
+            <p
+              className="text-text-muted font-mono text-sm mb-8"
+              style={{ animation: 'pulse 1.5s ease-in-out infinite' }}
+            >
+              tap anywhere to enable sound
+            </p>
+            <div className="text-text-muted font-mono text-xs">
+              Round {room!.roundNumber} / {room!.roundLimit ?? 5}
+            </div>
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.4; }
+              }
+            `}</style>
+          </div>
+        </div>
+      </MobileShell>
+    );
+  }
   // Show loading screen while attempting to rejoin
-  if (isRejoining) {
+  else if (isRejoining) {
     content = (
       <MobileShell>
         <div className="flex-1 flex items-center justify-center">

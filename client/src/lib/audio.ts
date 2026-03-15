@@ -36,6 +36,9 @@ export function unlockAudio(): void {
   const ctx = getContext();
   ctx.resume().catch(() => {});
 
+  // Don't overwrite the shared audio element while music is playing
+  if (musicPlaying) return;
+
   const audio = getAudio();
   audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
   audio.play().catch(() => {});

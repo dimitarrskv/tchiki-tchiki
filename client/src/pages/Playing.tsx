@@ -678,28 +678,6 @@ export function Playing() {
                   </div>
                 </div>
 
-                {/* Statistics */}
-                <div className="p-4 bg-bg-card border-2 border-primary/30 rounded-lg">
-                  <div className="text-xs text-text-muted font-mono mb-3 uppercase tracking-wide">
-                    {'>'} Game Stats:
-                  </div>
-                  <div className="space-y-2 font-mono text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Total Rounds:</span>
-                      <span className="text-primary">{room.roundNumber}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Players:</span>
-                      <span className="text-primary">{room.players.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Total Points:</span>
-                      <span className="text-primary">
-                        {Object.values(room.scores).reduce((sum, score) => sum + score, 0)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Fixed bottom actions */}
