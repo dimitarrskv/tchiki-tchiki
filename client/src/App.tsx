@@ -63,7 +63,7 @@ export function App() {
           <div className="text-center p-6">
             <div
               className="text-4xl font-bold mb-4 text-primary"
-              style={{ textShadow: '0 0 15px rgba(0, 240, 255, 0.5)' }}
+              style={{ textShadow: '0 0 10px var(--color-primary)' }}
             >
               Tap to Rejoin
             </div>

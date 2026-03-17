@@ -198,10 +198,10 @@ export function Playing() {
             </div>
 
             <div
-              className="text-3xl font-bold mb-4 text-primary"
+              className="text-4xl font-bold mb-4 text-primary"
               style={{
                 animation: 'fadeInUp 0.5s ease-out',
-                textShadow: '0 0 10px rgba(0, 240, 255, 0.4)'
+                textShadow: '0 0 10px var(--color-primary)',
               }}
             >
               Get Ready
@@ -612,7 +612,10 @@ export function Playing() {
                   animation: 'revealBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
                 }}
               >
-                <div className="text-5xl font-bold mb-2 text-primary neon-text">
+                <div
+                  className="text-4xl font-bold mb-4 text-primary"
+                  style={{ textShadow: '0 0 10px var(--color-primary)' }}
+                >
                   Game Over
                 </div>
                 <p className="text-text-muted font-mono text-sm">
