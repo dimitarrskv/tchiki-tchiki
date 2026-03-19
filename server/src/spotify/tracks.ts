@@ -25,6 +25,8 @@ const TRACKS: TrackPool = {
     { uri: 'spotify:track:2TfSHkHiFO4gGlVPuMbLGW', name: 'I Feel Love', artist: 'Donna Summer' },
     { uri: 'spotify:track:5Xak5fmy089t0FYmh3VJiY', name: "That's the Way (I Like It)", artist: 'KC and the Sunshine Band' },
     { uri: 'spotify:track:1kRFsLbRXDYiGGsnHBaFsr', name: 'Boogie Wonderland', artist: 'Earth, Wind & Fire' },
+    { uri: 'spotify:track:2qOm7ukLyHUXWyR4ZLLfvA', name: 'Upside Down', artist: 'Diana Ross' },
+    { uri: 'spotify:track:3rana9unkVGCPIFOl3cGJJz', name: 'Blue Monday', artist: 'New Order' },
   ],
   funk_soul: [
     { uri: 'spotify:track:7GhIk7Il098yCjg4BQjzvb', name: 'I Got You (I Feel Good)', artist: 'James Brown' },

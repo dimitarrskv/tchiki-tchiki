@@ -174,22 +174,39 @@ function makeWav(rate: number, samples: Float32Array): string {
   return 'data:audio/wav;base64,' + btoa(bin);
 }
 
-/** Play a countdown tick at the given frequency via HTML Audio. */
-export function playCountdownTick(freq: number): void {
+/** Play a countdown tick (3, 2, or 1) via HTML Audio.
+ *  Uses the same sub-bass + noise + ping layers as playTimesUp()
+ *  with escalating intensity so they build toward the final hit. */
+export function playCountdownTick(count: number): void {
   if (musicPlaying) return;
-  const key = `tick-${freq}`;
+  const key = `tick-${count}`;
   if (!wavCache.has(key)) {
+    // Escalating presets: 3 = lightest, 1 = heaviest (closest to times-up)
+    const presets: Record<number, {
+      dur: number;
+      subFrom: number; subTo: number; subDrop: number; subAmp: number; subDecay: number;
+      noiseDur: number; noiseAmp: number; noiseDecay: number;
+      pingFrom: number; pingTo: number; pingDrop: number; pingAmp: number; pingDecay: number; pingEnd: number;
+    }> = {
+      3: { dur: 0.2,  subFrom: 200, subTo: 100, subDrop: 0.12, subAmp: 0.15, subDecay: 12, noiseDur: 0.02, noiseAmp: 0.08, noiseDecay: 40, pingFrom: 1200, pingTo: 600,  pingDrop: 0.1,  pingAmp: 0.08, pingDecay: 18, pingEnd: 0.12 },
+      2: { dur: 0.25, subFrom: 180, subTo: 70,  subDrop: 0.15, subAmp: 0.25, subDecay: 8,  noiseDur: 0.04, noiseAmp: 0.15, noiseDecay: 35, pingFrom: 1600, pingTo: 700,  pingDrop: 0.12, pingAmp: 0.1,  pingDecay: 15, pingEnd: 0.16 },
+      1: { dur: 0.3,  subFrom: 160, subTo: 50,  subDrop: 0.18, subAmp: 0.32, subDecay: 6,  noiseDur: 0.06, noiseAmp: 0.2,  noiseDecay: 30, pingFrom: 2000, pingTo: 750,  pingDrop: 0.15, pingAmp: 0.12, pingDecay: 12, pingEnd: 0.2  },
+    };
+    const p = presets[count] ?? presets[1];
     const rate = 22050;
-    const len = (rate * 0.18) | 0;
+    const len = (rate * p.dur) | 0;
     const samples = new Float32Array(len);
     for (let i = 0; i < len; i++) {
       const t = i / rate;
-      // Triangle wave main tone with pitch sweep down
-      const mainFreq = freq * 1.5 * Math.pow(freq / (freq * 1.5), t / 0.06);
-      const main = ((((mainFreq * t) % 1) * 2 - 1)) * Math.exp(-t * 20) * 0.35;
-      // Sine sub for body
-      const sub = Math.sin(2 * Math.PI * freq * 0.5 * t) * Math.exp(-t * 15) * 0.15;
-      samples[i] = main + sub;
+      // Sub bass hit — sine with pitch drop (same shape as times-up)
+      const subFreq = p.subFrom * Math.pow(p.subTo / p.subFrom, Math.min(1, t / p.subDrop));
+      const sub = Math.sin(2 * Math.PI * subFreq * t) * Math.exp(-t * p.subDecay) * p.subAmp;
+      // Noise crack
+      const noise = t < p.noiseDur ? (Math.random() * 2 - 1) * Math.exp(-t * p.noiseDecay) * p.noiseAmp : 0;
+      // Sparkle ping — sine with pitch drop
+      const pingFreq = p.pingFrom * Math.pow(p.pingTo / p.pingFrom, Math.min(1, t / p.pingDrop));
+      const ping = t < p.pingEnd ? Math.sin(2 * Math.PI * pingFreq * t) * Math.exp(-t * p.pingDecay) * p.pingAmp : 0;
+      samples[i] = sub + noise + ping;
     }
     wavCache.set(key, makeWav(rate, samples));
   }
